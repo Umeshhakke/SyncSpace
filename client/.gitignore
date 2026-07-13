@@ -1,0 +1,11 @@
+# Client specific ignores
+node_modules/
+dist/
+.vite/
+npm-debug.log*
+package-lock.json
+yarn.lock
+*.db
+*.sqlite
+coverage/
+.nyc_output/
