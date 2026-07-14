@@ -1,6 +1,8 @@
+const http = require("http");
 const app = require("./app");
 const connectDB = require("./config/db");
 const dotenv = require("dotenv");
+const { initSocket } = require("./socket/socketHandler");
 
 // Load environment variables FIRST
 dotenv.config();
@@ -22,7 +24,12 @@ const startServer = async () => {
 
     // Start server
     const PORT = process.env.PORT || 5000;
-    const server = app.listen(PORT, () => {
+    const server = http.createServer(app);
+
+    // Initialize Socket.io modular handler
+    initSocket(server);
+
+    server.listen(PORT, () => {
       console.log(
         `${colors.green}✅ Server running in ${process.env.NODE_ENV || "development"} mode on port ${PORT}${colors.reset}`,
       );
@@ -50,3 +57,4 @@ const startServer = async () => {
 };
 
 startServer();
+
