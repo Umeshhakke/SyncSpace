@@ -1,115 +1,46 @@
+// socket/socketHandler.js
 const { Server } = require("socket.io");
-
-// Room Manager using a Map to maintain room memberships.
-// Structure: RoomID (string) -> Map of SocketID (string) -> Username (string)
-const roomManager = new Map();
+const roomManager = require("./roomManager");
+const { registerRoomEvents } = require("./roomHandlers");
 
 /**
  * Initializes Socket.io on the provided HTTP server.
- * @param {import("http").Server} httpServer - Node HTTP server instance
- * @returns {Server} Socket.io Server instance
+ * @param {import("http").Server} httpServer
  */
 const initSocket = (httpServer) => {
   const io = new Server(httpServer, {
     cors: {
-      origin: process.env.CLIENT_URL || "http://localhost:5173",
+      origin: "*", // In production, restrict to your frontend URL
       methods: ["GET", "POST"],
       credentials: true,
     },
   });
 
+  // ============ Hardcoded authentication ============
+  io.use((socket, next) => {
+    const token = socket.handshake.auth.token;
+    if (token === "demo123") {
+      next();
+    } else {
+      next(new Error("Authentication failed"));
+    }
+  });
+
+  // ============ Connection handler ============
   io.on("connection", (socket) => {
-    console.log(`🔌 Client connected: ${socket.id}`);
+    console.log(`🔌 New client connected: ${socket.id}`);
 
-    // Track rooms this specific socket joined during this connection session
-    const activeRooms = new Set();
+    // Register all room events from your existing roomHandlers
+    registerRoomEvents(io, socket, roomManager);
 
-    // Event: Client joins a room
-    socket.on("join-room", ({ roomId, username }) => {
-      if (!roomId || !username) {
-        console.warn(`⚠️ [join-room] Missing parameters from socket ${socket.id}: roomId=${roomId}, username=${username}`);
-        return;
-      }
+    // Optional: add any additional socket events here
 
-      // Join the standard Socket.io room channel
-      socket.join(roomId);
-      activeRooms.add(roomId);
-
-      // Initialize room user map if it doesn't exist
-      if (!roomManager.has(roomId)) {
-        roomManager.set(roomId, new Map());
-      }
-      
-      // Store the user under their socket.id in the room's user map
-      roomManager.get(roomId).set(socket.id, username);
-
-      console.log(`👤 User "${username}" (${socket.id}) joined room: ${roomId}`);
-
-      // Compile and emit updated user list to all participants in this room
-      const usersInRoom = Array.from(roomManager.get(roomId).entries()).map(([id, name]) => ({
-        socketId: id,
-        username: name,
-      }));
-      
-      io.to(roomId).emit("room-users-updated", usersInRoom);
-    });
-
-    // Event: Client explicitly leaves a room
-    socket.on("leave-room", (roomId) => {
-      if (!roomId) return;
-
-      console.log(`👤 User with socket ${socket.id} left room: ${roomId}`);
-
-      // Leave the standard Socket.io room channel
-      socket.leave(roomId);
-      activeRooms.delete(roomId);
-
-      // Remove the user registration from our room manager
-      if (roomManager.has(roomId)) {
-        const roomUsers = roomManager.get(roomId);
-        roomUsers.delete(socket.id);
-
-        // Delete the room entirely if no users remain
-        if (roomUsers.size === 0) {
-          roomManager.delete(roomId);
-        } else {
-          // Emit updated user list to remaining users in this room
-          const usersInRoom = Array.from(roomUsers.entries()).map(([id, name]) => ({
-            socketId: id,
-            username: name,
-          }));
-          io.to(roomId).emit("room-users-updated", usersInRoom);
-        }
-      }
-    });
-
-    // Event: Client disconnects
     socket.on("disconnect", () => {
-      console.log(`🔌 Client disconnected: ${socket.id}`);
-
-      // Perform cleanup for all rooms this socket joined
-      activeRooms.forEach((roomId) => {
-        if (roomManager.has(roomId)) {
-          const roomUsers = roomManager.get(roomId);
-          roomUsers.delete(socket.id);
-
-          if (roomUsers.size === 0) {
-            roomManager.delete(roomId);
-          } else {
-            // Notify remaining users of the updated room user list
-            const usersInRoom = Array.from(roomUsers.entries()).map(([id, name]) => ({
-              socketId: id,
-              username: name,
-            }));
-            io.to(roomId).emit("room-users-updated", usersInRoom);
-          }
-        }
-      });
-      activeRooms.clear();
+      console.log(`❌ User disconnected: ${socket.id}`);
     });
   });
 
-  return io;
+  return io; // (optional – if you need the io instance elsewhere)
 };
 
-module.exports = { initSocket, roomManager };
+module.exports = { initSocket };
