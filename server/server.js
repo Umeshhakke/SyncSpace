@@ -1,63 +1,82 @@
-require("dotenv").config();
+// server.js - Main entry point (standalone, no DB)
 
 const express = require("express");
 const cors = require("cors");
 const http = require("http");
 const { Server } = require("socket.io");
+const dotenv = require("dotenv");
 
+// Import your room modules (if they exist)
+// If you don't have these files yet, comment out or remove these lines.
+const roomManager = require("./socket/roomManager");
+const { registerRoomEvents } = require("./socket/roomHandlers");
+
+// Load environment variables (optional)
+dotenv.config();
+
+// ============ Create Express app ============
 const app = express();
-
 app.use(cors());
 app.use(express.json());
 
-// Health check route
+// Health check route (kept from your first version)
 app.get("/health", (req, res) => {
-    res.json({
-        status: "Server is running"
-    });
+  res.json({ status: "Server is running" });
 });
 
-// Create HTTP server
-const server = http.createServer(app);
+// ============ Create HTTP server ============
+const httpServer = http.createServer(app);
 
-// Initialize Socket.io
-const io = new Server(server, {
-    cors: {
-        origin: "*"
-    }
+// ============ Attach Socket.io ============
+const io = new Server(httpServer, {
+  cors: {
+    origin: "*", // For development; restrict later
+    methods: ["GET", "POST"],
+    credentials: true,
+  },
 });
-const activeUsers = new Map();
+
+// ============ Hardcoded authentication middleware ============
 io.use((socket, next) => {
-    const token = socket.handshake.auth.token;
-
-    if (token === "demo123") {
-        next();
-    } else {
-        next(new Error("Authentication failed"));
-    }
+  const token = socket.handshake.auth.token;
+  if (token === "demo123") {
+    next(); // Accept connection
+  } else {
+    next(new Error("Authentication failed")); // Reject
+  }
 });
 
-// Socket connection
+// ============ Socket connection handler ============
 io.on("connection", (socket) => {
+  console.log(` New client connected: ${socket.id}`);
 
-    activeUsers.set(socket.id, {
-        connectedAt: new Date()
+  // Register all room events (if you have the files)
+  if (typeof registerRoomEvents === "function") {
+    registerRoomEvents(io, socket, roomManager);
+  } else {
+    // Fallback: basic events if room modules are missing
+    console.log("  Room handlers not loaded – using fallback.");
+    socket.on("message", (data) => {
+      console.log("Message received:", data);
+      socket.emit("message", "Echo: " + data);
     });
+  }
 
-    console.log("User connected:", socket.id);
-    console.log("Active Users:", activeUsers.size);
-
-    socket.on("disconnect", () => {
-        activeUsers.delete(socket.id);
-
-        console.log("User disconnected:", socket.id);
-        console.log("Active Users:", activeUsers.size);
-    });
-
+  socket.on("disconnect", () => {
+    console.log(` User disconnected: ${socket.id}`);
+  });
 });
 
+// ============ Start the server ============
 const PORT = process.env.PORT || 3000;
+httpServer.listen(PORT, () => {
+  console.log(` Server running on http://localhost:${PORT}`);
+  console.log(` Health check: http://localhost:${PORT}/health`);
+  console.log(` Socket.io waiting for connections (token: demo123)`);
+});
 
-server.listen(PORT, () => {
-    console.log(`Server running on port ${PORT}`);
+// Handle unhandled rejections
+process.on("unhandledRejection", (err) => {
+  console.error(" Unhandled Rejection:", err.message);
+  httpServer.close(() => process.exit(1));
 });
