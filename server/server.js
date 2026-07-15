@@ -1,52 +1,63 @@
-const app = require("./app");
-const connectDB = require("./config/db");
-const dotenv = require("dotenv");
+require("dotenv").config();
 
-// Load environment variables FIRST
-dotenv.config();
+const express = require("express");
+const cors = require("cors");
+const http = require("http");
+const { Server } = require("socket.io");
 
-// Color helper (no external package needed)
-const colors = {
-  reset: "\x1b[0m",
-  green: "\x1b[32m",
-  red: "\x1b[31m",
-  cyan: "\x1b[36m",
-  yellow: "\x1b[33m",
-};
+const app = express();
 
-// Connect to MongoDB with better error handling
-const startServer = async () => {
-  try {
-    // Connect to database
-    await connectDB();
+app.use(cors());
+app.use(express.json());
 
-    // Start server
-    const PORT = process.env.PORT || 5000;
-    const server = app.listen(PORT, () => {
-      console.log(
-        `${colors.green}✅ Server running in ${process.env.NODE_ENV || "development"} mode on port ${PORT}${colors.reset}`,
-      );
-      console.log(
-        `${colors.cyan}📍 URL: http://localhost:${PORT}${colors.reset}`,
-      );
-      console.log(
-        `${colors.yellow}🔒 Health check: http://localhost:${PORT}/health${colors.reset}`,
-      );
+// Health check route
+app.get("/health", (req, res) => {
+    res.json({
+        status: "Server is running"
+    });
+});
+
+// Create HTTP server
+const server = http.createServer(app);
+
+// Initialize Socket.io
+const io = new Server(server, {
+    cors: {
+        origin: "*"
+    }
+});
+const activeUsers = new Map();
+io.use((socket, next) => {
+    const token = socket.handshake.auth.token;
+
+    if (token === "demo123") {
+        next();
+    } else {
+        next(new Error("Authentication failed"));
+    }
+});
+
+// Socket connection
+io.on("connection", (socket) => {
+
+    activeUsers.set(socket.id, {
+        connectedAt: new Date()
     });
 
-    // Handle unhandled promise rejections
-    process.on("unhandledRejection", (err) => {
-      console.log(
-        `${colors.red}❌ Unhandled Rejection: ${err.message}${colors.reset}`,
-      );
-      server.close(() => process.exit(1));
-    });
-  } catch (error) {
-    console.log(
-      `${colors.red}❌ Server startup failed: ${error.message}${colors.reset}`,
-    );
-    process.exit(1);
-  }
-};
+    console.log("User connected:", socket.id);
+    console.log("Active Users:", activeUsers.size);
 
-startServer();
+    socket.on("disconnect", () => {
+        activeUsers.delete(socket.id);
+
+        console.log("User disconnected:", socket.id);
+        console.log("Active Users:", activeUsers.size);
+    });
+
+});
+
+const PORT = process.env.PORT || 3000;
+
+server.listen(PORT, () => {
+    console.log(`Server running on port ${PORT}`);
+});
