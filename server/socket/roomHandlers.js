@@ -1,5 +1,7 @@
 // server/socket/roomHandlers.js - Socket.io event handlers
 
+const documentManager = require('../yjs/documentManager'); // 👈 NEW: Import Yjs Document Manager
+
 const registerRoomEvents = (io, socket, roomManager) => {
   // ---------- JOIN ROOM ----------
   socket.on("join-room", ({ roomId, username }) => {
@@ -18,6 +20,9 @@ const registerRoomEvents = (io, socket, roomManager) => {
     console.log(`📝 ${username} (${socket.id}) joined room: ${roomId}`);
 
     roomManager.addUser(roomId, socket.id, username);
+
+    // 👇 NEW: Get or create the Yjs document for this room
+    documentManager.getDocument(roomId);
 
     socket.broadcast.to(roomId).emit("user-joined", {
       userId: socket.id,
@@ -47,6 +52,12 @@ const registerRoomEvents = (io, socket, roomManager) => {
     socket.leave(roomId);
     roomManager.removeUser(roomId, socket.id);
 
+    // 👇 NEW: Check if room is empty, delete Yjs document if it is
+    const remainingUsers = roomManager.getRoomSize(roomId);
+    if (remainingUsers === 0) {
+      documentManager.deleteDocument(roomId);
+    }
+
     socket.broadcast.to(roomId).emit("user-left", {
       userId: socket.id,
       username: username,
@@ -68,6 +79,13 @@ const registerRoomEvents = (io, socket, roomManager) => {
     if (roomId && username) {
       console.log(`⚠️ ${username} (${socket.id}) disconnected unexpectedly. Cleaning up...`);
       roomManager.removeUser(roomId, socket.id);
+
+      // 👇 NEW: Check if room is empty, delete Yjs document if it is
+      const remainingUsers = roomManager.getRoomSize(roomId);
+      if (remainingUsers === 0) {
+        documentManager.deleteDocument(roomId);
+      }
+
       socket.broadcast.to(roomId).emit("user-left", {
         userId: socket.id,
         username: username,
