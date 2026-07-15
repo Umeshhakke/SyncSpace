@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Socket.io Test</title>
+</head>
+<body>
+  <h1>Socket.io Test Page</h1>
+  <p>Open the browser console (F12) to see connection logs.</p>
+
+  <!-- Load Socket.io from CDN -->
+  <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+  
+  <script>
+    // Connect to your server
+    const socket = io('http://localhost:5000');
+    
+    socket.on('connect', () => {
+      console.log('✅ Connected! My Socket ID:', socket.id);
+    });
+
+    socket.on('disconnect', () => {
+      console.log('❌ Disconnected from server');
+    });
+  </script>
+</body>
+</html>

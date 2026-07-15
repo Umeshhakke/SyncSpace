@@ -43,9 +43,9 @@ app.get("/", (req, res) => {
     version: "1.0.0",
     endpoints: {
       health: "/health",
-      register: "/api/auth/register",
-      login: "/api/auth/login",
-      profile: "/api/auth/profile",
+      // register: "/api/auth/register",
+      // login: "/api/auth/login",
+      // profile: "/api/auth/profile",
     },
   });
 });
