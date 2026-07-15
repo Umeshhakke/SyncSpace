@@ -1,7 +1,9 @@
 import React, { useState, useRef, useEffect } from "react";
 import { Stage, Layer, Line } from "react-konva";
 import Toolbar from "./Toolbar";
+import RoomPanel from "./RoomPanel";
 import useCanvas from "../../hooks/useCanvas";
+import socketService from "../../services/socketService";
 
 const Whiteboard = () => {
   const [tool, setTool] = useState("pen");
@@ -9,6 +11,14 @@ const Whiteboard = () => {
   const [brushSize, setBrushSize] = useState(5);
   const [stageSize, setStageSize] = useState({ width: 800, height: 600 });
   const stageRef = useRef(null);
+
+  // Room & socket connection states
+  const [connectionStatus, setConnectionStatus] = useState("disconnected");
+  const [isJoined, setIsJoined] = useState(false);
+  const [currentRoomId, setCurrentRoomId] = useState("");
+  const [currentUsername, setCurrentUsername] = useState("");
+  const [roomUsers, setRoomUsers] = useState([]);
+  const [notification, setNotification] = useState(null);
 
   const {
     lines,
@@ -24,6 +34,79 @@ const Whiteboard = () => {
     setLines,
     setRedoStack,
   } = useCanvas();
+
+  // Helper function to display custom toast messages
+  const showToast = (message, type = "info") => {
+    setNotification({ message, type });
+    // Auto-dismiss the toast notification after 3 seconds
+    const timer = setTimeout(() => {
+      setNotification(null);
+    }, 3000);
+    return timer;
+  };
+
+  // Listen to socket connection and user events
+  useEffect(() => {
+    let toastTimer;
+
+    const handleConnect = () => {
+      setConnectionStatus("connected");
+      setIsJoined(true);
+      if (toastTimer) clearTimeout(toastTimer);
+      toastTimer = showToast("Successfully joined the room!", "success");
+    };
+
+    const handleDisconnect = () => {
+      setConnectionStatus("disconnected");
+      setIsJoined(false);
+      setCurrentRoomId("");
+      setCurrentUsername("");
+      setRoomUsers([]);
+    };
+
+    const handleConnectError = () => {
+      setConnectionStatus("disconnected");
+      setIsJoined(false);
+      if (toastTimer) clearTimeout(toastTimer);
+      toastTimer = showToast("Connection failed.", "error");
+    };
+
+    const handleUsersUpdated = (usersList) => {
+      setRoomUsers(usersList);
+    };
+
+    socketService.on("connect", handleConnect);
+    socketService.on("disconnect", handleDisconnect);
+    socketService.on("connect_error", handleConnectError);
+    socketService.on("room-users-updated", handleUsersUpdated);
+
+    // Clean up socket listeners and connection on unmount
+    return () => {
+      socketService.off("connect", handleConnect);
+      socketService.off("disconnect", handleDisconnect);
+      socketService.off("connect_error", handleConnectError);
+      socketService.off("room-users-updated", handleUsersUpdated);
+      socketService.disconnect();
+      if (toastTimer) clearTimeout(toastTimer);
+    };
+  }, []);
+
+  // Handler for joining a room
+  const handleJoin = (roomId, username) => {
+    setConnectionStatus("connecting");
+    setCurrentRoomId(roomId);
+    setCurrentUsername(username);
+    socketService.joinRoom(roomId, username);
+  };
+
+  // Handler for leaving a room
+  const handleLeave = () => {
+    if (currentRoomId) {
+      socketService.leaveRoom(currentRoomId);
+      socketService.disconnect();
+      showToast("Successfully left the room.", "info");
+    }
+  };
 
   // Handle window resize for responsive canvas
   useEffect(() => {
@@ -75,6 +158,11 @@ const Whiteboard = () => {
 
   return (
     <div className="whiteboard-wrapper">
+      {notification && (
+        <div className={`toast toast-${notification.type}`}>
+          {notification.message}
+        </div>
+      )}
       <Toolbar
         tool={tool}
         setTool={setTool}
@@ -88,39 +176,52 @@ const Whiteboard = () => {
         canUndo={lines.length > 0}
         canRedo={redoStack.length > 0}
       />
-      <div className="canvas-container">
-        <Stage
-          ref={stageRef}
-          width={stageSize.width}
-          height={stageSize.height}
-          onMouseDown={handleMouseDown}
-          onMouseMove={handleMouseMove}
-          onMouseUp={handleMouseUp}
-          onMouseLeave={handleMouseLeave}
-          style={{ backgroundColor: "#ffffff", cursor: "crosshair" }}
-        >
-          <Layer>
-            {lines.map((line, i) => (
-              <Line
-                key={i}
-                points={line.points}
-                stroke={line.color}
-                strokeWidth={line.size}
-                tension={0.5}
-                lineCap="round"
-                lineJoin="round"
-                globalCompositeOperation={
-                  line.globalCompositeOperation || "source-over"
-                }
-                hitStrokeWidth={0}
-                listening={false}
-              />
-            ))}
-          </Layer>
-        </Stage>
+      <div className="whiteboard-main-layout">
+        <div className="canvas-container">
+          <Stage
+            ref={stageRef}
+            width={stageSize.width}
+            height={stageSize.height}
+            onMouseDown={handleMouseDown}
+            onMouseMove={handleMouseMove}
+            onMouseUp={handleMouseUp}
+            onMouseLeave={handleMouseLeave}
+            style={{ backgroundColor: "#ffffff", cursor: "crosshair" }}
+          >
+            <Layer>
+              {lines.map((line, i) => (
+                <Line
+                  key={i}
+                  points={line.points}
+                  stroke={line.color}
+                  strokeWidth={line.size}
+                  tension={0.5}
+                  lineCap="round"
+                  lineJoin="round"
+                  globalCompositeOperation={
+                    line.globalCompositeOperation || "source-over"
+                  }
+                  hitStrokeWidth={0}
+                  listening={false}
+                />
+              ))}
+            </Layer>
+          </Stage>
+        </div>
+        <RoomPanel
+          connectionStatus={connectionStatus}
+          isJoined={isJoined}
+          currentRoomId={currentRoomId}
+          currentUsername={currentUsername}
+          users={roomUsers}
+          currentSocketId={socketService.socket?.id}
+          onJoin={handleJoin}
+          onLeave={handleLeave}
+        />
       </div>
     </div>
   );
 };
 
 export default Whiteboard;
+

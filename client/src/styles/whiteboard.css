@@ -218,3 +218,361 @@
     font-size: 11px;
   }
 }
+
+/* Real-time Collaboration Room Panel */
+.whiteboard-main-layout {
+  display: flex;
+  flex: 1;
+  flex-direction: row;
+  overflow: hidden;
+}
+
+.room-panel {
+  width: 320px;
+  border-left: 2px solid #e8eaed;
+  background: #ffffff;
+  display: flex;
+  flex-direction: column;
+  padding: 20px;
+  flex-shrink: 0;
+  overflow-y: auto;
+  font-family: inherit;
+}
+
+.room-panel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #f1f3f4;
+}
+
+.room-panel-header h3 {
+  font-size: 16px;
+  color: #202124;
+  font-weight: 600;
+}
+
+.status-badge {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  padding: 4px 8px;
+  border-radius: 12px;
+}
+
+.status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.status-connected {
+  background: #e6f4ea;
+  color: #137333;
+}
+.status-connected .status-dot {
+  background: #137333;
+}
+
+.status-connecting {
+  background: #fef7e0;
+  color: #b06000;
+}
+.status-connecting .status-dot {
+  background: #b06000;
+  animation: pulse 1.5s infinite;
+}
+
+.status-disconnected {
+  background: #f1f3f4;
+  color: #5f6368;
+}
+.status-disconnected .status-dot {
+  background: #5f6368;
+}
+
+@keyframes pulse {
+  0% { opacity: 0.4; }
+  50% { opacity: 1; }
+  100% { opacity: 0.4; }
+}
+
+.room-validation-error {
+  background: #fce8e6;
+  color: #c5221f;
+  padding: 10px;
+  border-radius: 6px;
+  font-size: 13px;
+  margin-bottom: 16px;
+  font-weight: 500;
+}
+
+.room-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.form-group label {
+  font-size: 13px;
+  font-weight: 500;
+  color: #5f6368;
+}
+
+.form-group input {
+  padding: 10px 12px;
+  border: 1px solid #dadce0;
+  border-radius: 6px;
+  font-size: 14px;
+  outline: none;
+  transition: border-color 0.15s ease;
+  width: 100%;
+}
+
+.form-group input:focus {
+  border-color: #1976d2;
+}
+
+.form-group input:disabled {
+  background: #f1f3f4;
+  cursor: not-allowed;
+}
+
+.join-btn {
+  margin-top: 8px;
+  padding: 12px;
+  background: #1976d2;
+  color: #ffffff;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.15s ease;
+  width: 100%;
+}
+
+.join-btn:hover:not(:disabled) {
+  background: #1565c0;
+}
+
+.join-btn:disabled {
+  background: #bcc1c6;
+  cursor: not-allowed;
+}
+
+.room-details {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  background: #f8f9fa;
+  padding: 16px;
+  border-radius: 8px;
+  border: 1px solid #f1f3f4;
+}
+
+.detail-row {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.detail-label {
+  font-size: 12px;
+  color: #70757a;
+  font-weight: 500;
+}
+
+.detail-value {
+  font-size: 14px;
+  font-weight: 600;
+  color: #202124;
+  word-break: break-all;
+}
+
+.room-id-value {
+  font-family: monospace;
+  background: #e8eaed;
+  padding: 2px 6px;
+  border-radius: 4px;
+  align-self: flex-start;
+}
+
+.leave-btn {
+  margin-top: 10px;
+  padding: 10px;
+  background: transparent;
+  color: #d93025;
+  border: 1px solid #d93025;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  width: 100%;
+}
+
+.leave-btn:hover {
+  background: #fce8e6;
+}
+
+@media (max-width: 768px) {
+  .whiteboard-main-layout {
+    flex-direction: column-reverse;
+  }
+  
+  .room-panel {
+    width: 100%;
+    height: auto;
+    border-left: none;
+    border-top: 2px solid #e8eaed;
+    max-height: 300px;
+  }
+}
+
+/* Toast Notification */
+.toast {
+  position: fixed;
+  top: 24px;
+  right: 24px;
+  padding: 12px 24px;
+  border-radius: 8px;
+  color: #ffffff;
+  font-size: 14px;
+  font-weight: 500;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  z-index: 1000;
+  animation: slideIn 0.3s cubic-bezier(0.16, 1, 0.3, 1), fadeOut 0.3s ease 2.7s forwards;
+}
+
+.toast-success {
+  background: #137333;
+  border-left: 4px solid #0f5226;
+}
+
+.toast-info {
+  background: #1976d2;
+  border-left: 4px solid #0d47a1;
+}
+
+.toast-error {
+  background: #d93025;
+  border-left: 4px solid #b71c1c;
+}
+
+@keyframes slideIn {
+  from {
+    transform: translateY(-20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes fadeOut {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+/* Active Users List */
+.users-list-section {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid #e8eaed;
+}
+
+.users-list-section h4 {
+  font-size: 13px;
+  color: #5f6368;
+  margin-bottom: 12px;
+  font-weight: 600;
+}
+
+.users-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 180px;
+  overflow-y: auto;
+  margin-bottom: 12px;
+  padding-right: 4px;
+}
+
+/* Custom scrollbar for active users list */
+.users-list::-webkit-scrollbar {
+  width: 4px;
+}
+.users-list::-webkit-scrollbar-track {
+  background: transparent;
+}
+.users-list::-webkit-scrollbar-thumb {
+  background: #dadce0;
+  border-radius: 2px;
+}
+
+.user-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 8px;
+  background: #ffffff;
+  border: 1px solid #f1f3f4;
+  border-radius: 6px;
+  transition: background 0.15s ease;
+}
+
+.user-item:hover {
+  background: #f8f9fa;
+}
+
+.user-avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  color: #ffffff;
+  font-size: 12px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.1);
+  flex-shrink: 0;
+}
+
+.user-name {
+  font-size: 13px;
+  font-weight: 500;
+  color: #202124;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.me-badge {
+  font-size: 10px;
+  color: #1a73e8;
+  background: #e8f0fe;
+  padding: 1px 6px;
+  border-radius: 10px;
+  font-weight: bold;
+}
