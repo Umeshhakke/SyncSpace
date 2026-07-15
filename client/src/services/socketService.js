@@ -21,7 +21,9 @@ class SocketService {
     // Initialize the socket instance with configurations
     this.socket = io(apiUrl, {
       autoConnect: false, // Disabled auto-connection to only connect on-demand
-      withCredentials: true,
+      auth: {                // <-- ADD THIS
+          token: "demo123"     // Hardcoded for now (or get from env)
+        }
     });
 
     // 1. Connection Error Handling

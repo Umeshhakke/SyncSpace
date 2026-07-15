@@ -1,20 +1,37 @@
-const http = require("http");
 const app = require("./app");
 const connectDB = require("./config/db");
 const dotenv = require("dotenv");
 const { initSocket } = require("./socket/socketHandler");
 
-// Load environment variables FIRST
+// Import your room modules (if they exist)
+// If you don't have these files yet, comment out or remove these lines.
+const roomManager = require("./socket/roomManager");
+const { registerRoomEvents } = require("./socket/roomHandlers");
+
+// Load environment variables (optional)
 dotenv.config();
 
-// Color helper (no external package needed)
-const colors = {
-  reset: "\x1b[0m",
-  green: "\x1b[32m",
-  red: "\x1b[31m",
-  cyan: "\x1b[36m",
-  yellow: "\x1b[33m",
-};
+// ============ Create Express app ============
+const app = express();
+app.use(cors());
+app.use(express.json());
+
+// Health check route (kept from your first version)
+app.get("/health", (req, res) => {
+  res.json({ status: "Server is running" });
+});
+
+// ============ Create HTTP server ============
+const httpServer = http.createServer(app);
+
+// ============ Attach Socket.io ============
+const io = new Server(httpServer, {
+  cors: {
+    origin: "*", // For development; restrict later
+    methods: ["GET", "POST"],
+    credentials: true,
+  },
+});
 
 // Connect to MongoDB with better error handling
 const startServer = async () => {
@@ -24,12 +41,7 @@ const startServer = async () => {
 
     // Start server
     const PORT = process.env.PORT || 5000;
-    const server = http.createServer(app);
-
-    // Initialize Socket.io modular handler
-    initSocket(server);
-
-    server.listen(PORT, () => {
+    const server = app.listen(PORT, () => {
       console.log(
         `${colors.green}✅ Server running in ${process.env.NODE_ENV || "development"} mode on port ${PORT}${colors.reset}`,
       );
@@ -57,4 +69,3 @@ const startServer = async () => {
 };
 
 startServer();
-
