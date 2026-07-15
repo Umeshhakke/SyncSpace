@@ -1,82 +1,82 @@
-// server/server.js - Main entry point with Socket.io
+// server.js - Main entry point (standalone, no DB)
 
-const app = require("./app");
-const connectDB = require("./config/db");
-const dotenv = require("dotenv");
+const express = require("express");
+const cors = require("cors");
 const http = require("http");
 const { Server } = require("socket.io");
+const dotenv = require("dotenv");
 
-// Import your room modules
+// Import your room modules (if they exist)
+// If you don't have these files yet, comment out or remove these lines.
 const roomManager = require("./socket/roomManager");
 const { registerRoomEvents } = require("./socket/roomHandlers");
 
-// Load environment variables
+// Load environment variables (optional)
 dotenv.config();
 
-// Color helper (kept from your original code)
-const colors = {
-  reset: "\x1b[0m",
-  green: "\x1b[32m",
-  red: "\x1b[31m",
-  cyan: "\x1b[36m",
-  yellow: "\x1b[33m",
-};
+// ============ Create Express app ============
+const app = express();
+app.use(cors());
+app.use(express.json());
 
-const startServer = async () => {
-  try {
-    // Connect to MongoDB
-    await connectDB();
+// Health check route (kept from your first version)
+app.get("/health", (req, res) => {
+  res.json({ status: "Server is running" });
+});
 
-    // Create HTTP server (wraps your Express app)
-    const httpServer = http.createServer(app);
+// ============ Create HTTP server ============
+const httpServer = http.createServer(app);
 
-    // Attach Socket.io
-    const io = new Server(httpServer, {
-      cors: {
-        origin: '*',
-        credentials: true,
-        methods: ["GET", "POST"],
-      },
-    });
+// ============ Attach Socket.io ============
+const io = new Server(httpServer, {
+  cors: {
+    origin: "*", // For development; restrict later
+    methods: ["GET", "POST"],
+    credentials: true,
+  },
+});
 
-    // Socket.io connection handler
-    io.on("connection", (socket) => {
-      console.log(`${colors.cyan}🔌 New client connected: ${socket.id}${colors.reset}`);
-
-      // Register all room events from your handler file
-      registerRoomEvents(io, socket, roomManager);
-    });
-
-    // Start the server
-    const PORT = process.env.PORT || 5000;
-    httpServer.listen(PORT, () => {
-      console.log(
-        `${colors.green}✅ Server running in ${process.env.NODE_ENV || "development"} mode on port ${PORT}${colors.reset}`
-      );
-      console.log(
-        `${colors.cyan}📍 URL: http://localhost:${PORT}${colors.reset}`
-      );
-      console.log(
-        `${colors.yellow}🔒 Health check: http://localhost:${PORT}/health${colors.reset}`
-      );
-      console.log(
-        `${colors.yellow}🔌 Socket.io is listening for WebSocket connections${colors.reset}`
-      );
-    });
-
-    // Handle unhandled promise rejections
-    process.on("unhandledRejection", (err) => {
-      console.log(
-        `${colors.red}❌ Unhandled Rejection: ${err.message}${colors.reset}`
-      );
-      httpServer.close(() => process.exit(1));
-    });
-  } catch (error) {
-    console.log(
-      `${colors.red}❌ Server startup failed: ${error.message}${colors.reset}`
-    );
-    process.exit(1);
+// ============ Hardcoded authentication middleware ============
+io.use((socket, next) => {
+  const token = socket.handshake.auth.token;
+  if (token === "demo123") {
+    next(); // Accept connection
+  } else {
+    next(new Error("Authentication failed")); // Reject
   }
-};
+});
 
-startServer();
+// ============ Socket connection handler ============
+io.on("connection", (socket) => {
+  console.log(` New client connected: ${socket.id}`);
+
+  // Register all room events (if you have the files)
+  if (typeof registerRoomEvents === "function") {
+    registerRoomEvents(io, socket, roomManager);
+  } else {
+    // Fallback: basic events if room modules are missing
+    console.log("  Room handlers not loaded – using fallback.");
+    socket.on("message", (data) => {
+      console.log("Message received:", data);
+      socket.emit("message", "Echo: " + data);
+    });
+  }
+
+  socket.on("disconnect", () => {
+    console.log(` User disconnected: ${socket.id}`);
+  });
+});
+
+// ============ Start the server ============
+const PORT = process.env.PORT || 3000;
+httpServer.listen(PORT, () => {
+  console.log(` Server running on http://localhost:${PORT}`);
+  console.log(` Health check: http://localhost:${PORT}/health`);
+  console.log(` Socket.io waiting for connections (token: demo123)`);
+});
+
+// Handle unhandled rejections
+process.on("unhandledRejection", (err) => {
+  console.error(" Unhandled Rejection:", err.message);
+  httpServer.close(() => process.exit(1));
+});
