@@ -4,11 +4,11 @@ import { WebsocketProvider } from "y-websocket";
 
 /**
  * Custom React hook to initialize and manage Yjs real-time collaborative state.
- * Creates a Y.Doc, initializes a WebsocketProvider for the given roomId,
- * and handles proper resource cleanup on unmount or roomId change.
+ * Exposes a Y.Doc, a WebsocketProvider, and an awareness presence instance.
+ * Handles proper resource cleanup when the room changes or component unmounts.
  * 
  * @param {string} roomId - The dynamic room identifier
- * @returns {Object} Yjs instances { doc, provider, awareness, shapesArray }
+ * @returns {Object} Yjs connection states { doc, provider, awareness, shapesArray }
  */
 const useYjs = (roomId) => {
   const [yjsInstances, setYjsInstances] = useState({
@@ -30,23 +30,23 @@ const useYjs = (roomId) => {
       return;
     }
 
-    // 1. Create a new Yjs Document instance
+    // 1. Create a new Yjs Document instance (Stores collaborative structures)
     const doc = new Y.Doc();
 
-    // 2. Read the server URL from the environment variables (Vite-specific) or fallback
+    // 2. Read the server URL from Vite environment variables (VITE_YJS_SERVER_URL)
+    // Fallback to local default port 1234
     const serverUrl = import.meta.env.VITE_YJS_SERVER_URL || "ws://localhost:1234";
 
-    // 3. Initialize the WebsocketProvider
-    // Parameters: connection URL, room name (roomId), and Y.Doc instance
+    // 3. Initialize the WebsocketProvider to handle connection & state sync
     const provider = new WebsocketProvider(serverUrl, roomId, doc);
 
-    // 4. Access the shared Yjs Array for shape drawings
+    // 4. Access the shared Yjs Array for shape drawings (named "shapes" as required)
     const shapesArray = doc.getArray("shapes");
 
-    // 5. Access the awareness instance for real-time cursor/user state
+    // 5. Access the awareness instance for user cursor/state sharing
     const awareness = provider.awareness;
 
-    // Update state to make these instances available to the consuming component
+    // Save the created instances to React state to share with consuming hooks/components
     setYjsInstances({
       doc,
       provider,
@@ -54,7 +54,7 @@ const useYjs = (roomId) => {
       shapesArray,
     });
 
-    // 6. Cleanup function called on roomId change or component unmount
+    // 6. Cleanup function to close connections and prevent memory leaks
     return () => {
       if (provider) {
         provider.destroy();
