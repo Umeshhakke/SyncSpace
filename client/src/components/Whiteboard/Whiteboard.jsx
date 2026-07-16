@@ -39,6 +39,14 @@ const Whiteboard = () => {
   // Initialize the Yjs collaboration hook when a user joins a room
   const { doc, provider, awareness, shapesArray } = useYjs(currentRoomId);
 
+  // Cache of synchronized shape IDs to prevent duplicate network syncs
+  const syncedIdsRef = useRef(new Set());
+
+  // Clear synchronization cache when room or shapesArray changes
+  useEffect(() => {
+    syncedIdsRef.current.clear();
+  }, [shapesArray]);
+
   // Synchronize remote shapes from Yjs to local canvas state
   useEffect(() => {
     if (!shapesArray) return;
@@ -52,6 +60,9 @@ const Whiteboard = () => {
           // op.insert contains the inserted shape object(s)
           const inserted = Array.isArray(op.insert) ? op.insert : [op.insert];
           inserted.forEach((shape) => {
+            // Add remote shape ID to synced cache to prevent re-syncing back
+            syncedIdsRef.current.add(shape.id);
+
             // Convert the Yjs object format to Member 3's existing shape format
             const remoteLine = {
               id: shape.id,
@@ -84,6 +95,59 @@ const Whiteboard = () => {
       shapesArray.unobserve(handleObserve);
     };
   }, [shapesArray, setLines]);
+
+  // Synchronize local shapes to Yjs when a drawing is completed
+  useEffect(() => {
+    if (!shapesArray || lines.length === 0) return;
+
+    // Identify unsynced lines (lines that have no ID or are not in the sync cache)
+    const unsyncedIndices = [];
+    lines.forEach((line, idx) => {
+      if (!line.id || !syncedIdsRef.current.has(line.id)) {
+        unsyncedIndices.push(idx);
+      }
+    });
+
+    if (unsyncedIndices.length === 0) return;
+
+    const shapesToPush = [];
+    const updatedLines = [...lines];
+
+    unsyncedIndices.forEach((idx) => {
+      const localLine = updatedLines[idx];
+      // Reuse existing ID if it exists, otherwise generate a unique one
+      const uniqueId = localLine.id || `shape-${currentUsername || "anonymous"}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+
+      // Map the local line format to the Yjs shared shape schema
+      const yjsShape = {
+        id: uniqueId,
+        type: localLine.tool,
+        stroke: localLine.color,
+        strokeWidth: localLine.size,
+        points: localLine.points,
+        createdBy: currentUsername || "anonymous",
+        timestamp: Date.now(),
+        x: 0,
+        y: 0,
+      };
+
+      shapesToPush.push(yjsShape);
+      // Register in sync cache immediately to block concurrent duplicates
+      syncedIdsRef.current.add(uniqueId);
+
+      // Update the local line with the generated unique ID
+      updatedLines[idx] = {
+        ...localLine,
+        id: uniqueId,
+      };
+    });
+
+    // Update lines state to contain the generated IDs
+    setLines(updatedLines);
+
+    // Push the new shapes to the shared Yjs array
+    shapesArray.push(shapesToPush);
+  }, [lines, shapesArray, currentUsername, setLines]);
 
   // Helper function to display custom toast messages
   const showToast = (message, type = "info") => {
