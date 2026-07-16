@@ -4,6 +4,7 @@ import Toolbar from "./Toolbar";
 import RoomPanel from "./RoomPanel";
 import useCanvas from "../../hooks/useCanvas";
 import socketService from "../../services/socketService";
+import useYjs from "../../hooks/useYjs";
 
 const Whiteboard = () => {
   const [tool, setTool] = useState("pen");
@@ -34,6 +35,9 @@ const Whiteboard = () => {
     setLines,
     setRedoStack,
   } = useCanvas();
+
+  // Initialize the Yjs collaboration hook when a user joins a room
+  const { doc, provider, awareness, shapesArray } = useYjs(currentRoomId);
 
   // Helper function to display custom toast messages
   const showToast = (message, type = "info") => {
