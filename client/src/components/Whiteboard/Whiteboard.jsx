@@ -1,5 +1,5 @@
-import React, { useState, useRef, useEffect } from "react";
-import { Stage, Layer, Line } from "react-konva";
+import React, { useState, useRef, useEffect, useMemo, useCallback } from "react";
+import { Stage, Layer, Line, Circle, Text, Label, Tag } from "react-konva";
 import Toolbar from "./Toolbar";
 import RoomPanel from "./RoomPanel";
 import useCanvas from "../../hooks/useCanvas";
@@ -46,6 +46,82 @@ const Whiteboard = () => {
   useEffect(() => {
     syncedIdsRef.current.clear();
   }, [shapesArray]);
+
+  // Generate a random cursor color once per session
+  const userCursorColor = useMemo(() => {
+    const colors = [
+      "#e91e63", "#9c27b0", "#673ab7", "#3f51b5",
+      "#2196f3", "#00bcd4", "#009688", "#4caf50",
+      "#ff9800", "#ff5722", "#795548", "#607d8b"
+    ];
+    return colors[Math.floor(Math.random() * colors.length)];
+  }, []);
+
+  // State to hold remote users' cursor presence data
+  const [remoteCursors, setRemoteCursors] = useState([]);
+
+  // Ref to track last cursor update timestamp for throttling
+  const lastCursorUpdateRef = useRef(0);
+
+  // Callback to update the local user's presence state in Yjs Awareness
+  const updateLocalCursor = useCallback((x, y) => {
+    if (!awareness) return;
+
+    const now = Date.now();
+    // Throttle cursor updates to 50ms intervals
+    if (now - lastCursorUpdateRef.current < 50) return;
+    lastCursorUpdateRef.current = now;
+
+    awareness.setLocalStateField("cursor", {
+      x,
+      y,
+      username: currentUsername || "anonymous",
+      color: userCursorColor,
+    });
+  }, [awareness, currentUsername, userCursorColor]);
+
+  // Effect to listen to remote users' cursor updates
+  useEffect(() => {
+    if (!awareness) {
+      setRemoteCursors([]);
+      return;
+    }
+
+    const handleAwarenessChange = () => {
+      const states = awareness.getStates();
+      const cursors = [];
+
+      states.forEach((state, clientId) => {
+        // Do not render the local user's own cursor
+        if (clientId === doc?.clientID) return;
+
+        if (state.cursor) {
+          cursors.push({
+            clientId,
+            x: state.cursor.x,
+            y: state.cursor.y,
+            username: state.cursor.username,
+            color: state.cursor.color,
+          });
+        }
+      });
+
+      setRemoteCursors(cursors);
+    };
+
+    awareness.on("change", handleAwarenessChange);
+    // Initial fetch of active cursors
+    handleAwarenessChange();
+
+    return () => {
+      if (awareness) {
+        awareness.off("change", handleAwarenessChange);
+        // Clear the local cursor presence when leaving the room
+        awareness.setLocalStateField("cursor", null);
+      }
+      setRemoteCursors([]);
+    };
+  }, [awareness, doc]);
 
   // Synchronize remote shapes from Yjs to local canvas state
   useEffect(() => {
@@ -255,9 +331,17 @@ const Whiteboard = () => {
   };
 
   const handleMouseMove = (e) => {
-    if (!isDrawing) return;
     const pos = e.target.getStage().getPointerPosition();
-    draw(pos.x, pos.y);
+
+    // Draw locally if mouse button is down
+    if (isDrawing) {
+      draw(pos.x, pos.y);
+    }
+
+    // Share cursor position to remote users
+    if (awareness && currentUsername) {
+      updateLocalCursor(pos.x, pos.y);
+    }
   };
 
   const handleMouseUp = () => {
@@ -267,6 +351,10 @@ const Whiteboard = () => {
   const handleMouseLeave = () => {
     if (isDrawing) {
       stopDrawing();
+    }
+    // Remove cursor representation on remote screens when local user leaves stage area
+    if (awareness) {
+      awareness.setLocalStateField("cursor", null);
     }
   };
 
@@ -318,6 +406,48 @@ const Whiteboard = () => {
                   hitStrokeWidth={0}
                   listening={false}
                 />
+              ))}
+            </Layer>
+            {/* Dedicated Layer for rendering remote users' cursors */}
+            <Layer>
+              {remoteCursors.map((cursor) => (
+                <React.Fragment key={cursor.clientId}>
+                  {/* Visual cursor dot */}
+                  <Circle
+                    x={cursor.x}
+                    y={cursor.y}
+                    radius={5}
+                    fill={cursor.color}
+                    stroke="#ffffff"
+                    strokeWidth={1.5}
+                    shadowColor="black"
+                    shadowBlur={3}
+                    shadowOpacity={0.25}
+                    listening={false}
+                  />
+                  {/* Premium floating label tooltips showing username */}
+                  <Label x={cursor.x + 8} y={cursor.y + 8} listening={false}>
+                    <Tag
+                      fill={cursor.color}
+                      pointerDirection="left"
+                      pointerWidth={6}
+                      pointerHeight={6}
+                      lineJoin="round"
+                      cornerRadius={4}
+                      shadowColor="black"
+                      shadowBlur={2}
+                      shadowOpacity={0.15}
+                    />
+                    <Text
+                      text={cursor.username}
+                      fontFamily="sans-serif"
+                      fontSize={10}
+                      fontStyle="bold"
+                      padding={4}
+                      fill="#ffffff"
+                    />
+                  </Label>
+                </React.Fragment>
               ))}
             </Layer>
           </Stage>
