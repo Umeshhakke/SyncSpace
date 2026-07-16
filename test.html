@@ -3,286 +3,328 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Socket.io Test</title>
+  <title>Room Test - Member 2</title>
   <style>
+    * { box-sizing: border-box; }
     body {
-      font-family: Arial, sans-serif;
-      max-width: 600px;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      max-width: 700px;
       margin: 2rem auto;
       padding: 1rem;
-      background: #f5f7fa;
+      background: #f0f2f5;
     }
-    h1 {
-      color: #2c3e50;
-      border-bottom: 2px solid #3498db;
-      padding-bottom: 0.5rem;
+    h1 { color: #2c3e50; border-bottom: 2px solid #3498db; padding-bottom: 0.5rem; }
+    .card {
+      background: white;
+      border-radius: 10px;
+      padding: 1rem;
+      margin: 1rem 0;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
     }
     .status {
-      background: #ecf0f1;
-      padding: 0.75rem;
-      border-radius: 8px;
-      margin: 1rem 0;
-      font-weight: bold;
       display: flex;
       align-items: center;
+      gap: 0.75rem;
+      padding: 0.5rem 0;
+      font-weight: bold;
     }
-    .status .dot {
+    .dot {
       display: inline-block;
-      width: 14px;
-      height: 14px;
+      width: 14px; height: 14px;
       border-radius: 50%;
-      margin-right: 10px;
     }
-    .status .dot.online {
-      background: #2ecc71;
-    }
-    .status .dot.offline {
-      background: #e74c3c;
-    }
-    .status .dot.connecting {
-      background: #f1c40f;
-      animation: pulse 1s infinite;
-    }
+    .dot.online { background: #2ecc71; }
+    .dot.offline { background: #e74c3c; }
+    .dot.connecting { background: #f1c40f; animation: pulse 1s infinite; }
     @keyframes pulse {
-      0% { opacity: 1; }
-      50% { opacity: 0.3; }
-      100% { opacity: 1; }
+      0% { opacity: 1; } 50% { opacity: 0.3; } 100% { opacity: 1; }
     }
-    .logs {
-      background: #2c3e50;
-      color: #ecf0f1;
-      padding: 1rem;
-      border-radius: 8px;
-      max-height: 250px;
-      overflow-y: auto;
-      font-family: 'Courier New', monospace;
-      font-size: 0.9rem;
-      margin: 1rem 0;
-    }
-    .logs .log-entry {
-      margin: 0.2rem 0;
-    }
-    .logs .log-entry.error {
-      color: #e74c3c;
-    }
-    .logs .log-entry.success {
-      color: #2ecc71;
-    }
-    .logs .log-entry.info {
-      color: #3498db;
-    }
-    .btn-group {
+    .flex {
       display: flex;
-      gap: 1rem;
+      gap: 0.75rem;
       flex-wrap: wrap;
-      margin: 1rem 0;
+      align-items: center;
     }
+    .flex input, .flex button {
+      padding: 0.5rem 0.75rem;
+      border: 1px solid #bdc3c7;
+      border-radius: 6px;
+      font-size: 1rem;
+    }
+    .flex input { flex: 1; min-width: 120px; }
     button {
       background: #3498db;
       color: white;
       border: none;
-      padding: 0.6rem 1.5rem;
       border-radius: 6px;
       cursor: pointer;
-      font-size: 1rem;
+      font-weight: 600;
       transition: background 0.2s;
     }
-    button:hover {
-      background: #2980b9;
-    }
-    button:disabled {
-      background: #bdc3c7;
-      cursor: not-allowed;
-    }
-    button.danger {
-      background: #e74c3c;
-    }
-    button.danger:hover {
-      background: #c0392b;
-    }
-    .input-group {
-      display: flex;
-      gap: 0.5rem;
+    button:hover { background: #2980b9; }
+    button.danger { background: #e74c3c; }
+    button.danger:hover { background: #c0392b; }
+    button.success { background: #2ecc71; }
+    button.success:hover { background: #27ae60; }
+    button:disabled { opacity: 0.6; cursor: not-allowed; }
+    .logs {
+      background: #1e1e2f;
+      color: #cdd6f4;
+      padding: 0.75rem;
+      border-radius: 8px;
+      max-height: 220px;
+      overflow-y: auto;
+      font-family: 'Courier New', monospace;
+      font-size: 0.85rem;
       margin: 0.5rem 0;
     }
-    .input-group input {
-      flex: 1;
-      padding: 0.6rem;
-      border: 1px solid #bdc3c7;
-      border-radius: 6px;
-      font-size: 1rem;
+    .logs .log-entry { margin: 0.2rem 0; }
+    .logs .log-entry.error { color: #f38ba8; }
+    .logs .log-entry.success { color: #a6e3a1; }
+    .logs .log-entry.info { color: #89b4fa; }
+    .logs .log-entry.warn { color: #f9e2af; }
+    #participants {
+      background: #f8f9fa;
+      padding: 0.5rem 1rem;
+      border-radius: 8px;
+      min-height: 2.5rem;
+      margin: 0.5rem 0;
+    }
+    .badge {
+      display: inline-block;
+      background: #2c3e50;
+      color: white;
+      padding: 0.2rem 0.8rem;
+      border-radius: 20px;
+      margin: 0.2rem;
+      font-size: 0.85rem;
     }
   </style>
 </head>
 <body>
 
-  <h1>🔌 Socket.io Test</h1>
+<h1>🏠 Room Test (Member 2)</h1>
 
-  <!-- Connection status -->
-  <div class="status" id="status">
+<!-- Connection Status -->
+<div class="card">
+  <div class="status">
     <span class="dot connecting" id="statusDot"></span>
     <span id="statusText">Connecting...</span>
   </div>
-
-  <!-- Message log -->
-  <div class="logs" id="logs">
-    <div class="log-entry info">📡 Waiting for messages...</div>
-  </div>
-
-  <!-- Actions -->
-  <div class="btn-group">
-    <button id="sendBtn" disabled>📤 Send Test Message</button>
+  <div class="flex">
     <button id="reconnectBtn" class="danger">🔄 Reconnect</button>
   </div>
+</div>
 
-  <div class="input-group">
-    <input type="text" id="messageInput" placeholder="Type a custom message..." />
-    <button id="sendCustomBtn" disabled>Send</button>
+<!-- Room Controls -->
+<div class="card">
+  <h3>🔑 Join / Leave Room</h3>
+  <div class="flex">
+    <input type="text" id="roomInput" placeholder="Room ID (e.g. Room-A)" value="Room-A" />
+    <input type="text" id="userInput" placeholder="Username" value="Alice" />
+    <button id="joinBtn" class="success">➕ Join</button>
+    <button id="leaveBtn" class="danger">➖ Leave</button>
   </div>
+</div>
 
-  <p><small>🔑 Token used: <strong>demo123</strong> (hardcoded in script)</small></p>
+<!-- Participant List -->
+<div class="card">
+  <h3>👥 Participants</h3>
+  <div id="participants">
+    <span style="color:#7f8c8d;">No participants yet</span>
+  </div>
+</div>
 
-  <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
-  <script>
-    (function() {
-      // DOM refs
-      const statusDot = document.getElementById('statusDot');
-      const statusText = document.getElementById('statusText');
-      const logsDiv = document.getElementById('logs');
-      const sendBtn = document.getElementById('sendBtn');
-      const reconnectBtn = document.getElementById('reconnectBtn');
-      const messageInput = document.getElementById('messageInput');
-      const sendCustomBtn = document.getElementById('sendCustomBtn');
+<!-- Event Logs -->
+<div class="card">
+  <h3>📡 Event Logs</h3>
+  <div class="logs" id="logs">
+    <div class="log-entry info">📡 Waiting for events...</div>
+  </div>
+  <button id="clearLogsBtn" style="background:#95a5a6; margin-top:0.5rem;">🧹 Clear Logs</button>
+</div>
 
-      let socket = null;
+<script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+<script>
+  (function() {
+    // ---- DOM refs ----
+    const statusDot = document.getElementById('statusDot');
+    const statusText = document.getElementById('statusText');
+    const logsDiv = document.getElementById('logs');
+    const reconnectBtn = document.getElementById('reconnectBtn');
+    const roomInput = document.getElementById('roomInput');
+    const userInput = document.getElementById('userInput');
+    const joinBtn = document.getElementById('joinBtn');
+    const leaveBtn = document.getElementById('leaveBtn');
+    const participantsDiv = document.getElementById('participants');
+    const clearLogsBtn = document.getElementById('clearLogsBtn');
 
-      // Helper: add log entry
-      function addLog(message, type = 'info') {
-        const entry = document.createElement('div');
-        entry.className = `log-entry ${type}`;
-        entry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
-        logsDiv.appendChild(entry);
-        logsDiv.scrollTop = logsDiv.scrollHeight;
+    let socket = null;
+    let currentRoom = '';
+    let currentUsername = '';
+
+    // ---- Helpers ----
+    function addLog(message, type = 'info') {
+      const entry = document.createElement('div');
+      entry.className = `log-entry ${type}`;
+      entry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+      logsDiv.appendChild(entry);
+      logsDiv.scrollTop = logsDiv.scrollHeight;
+    }
+
+    function setStatus(text, type) {
+      statusText.textContent = text;
+      statusDot.className = 'dot';
+      if (type === 'online') statusDot.classList.add('online');
+      else if (type === 'offline') statusDot.classList.add('offline');
+      else statusDot.classList.add('connecting');
+    }
+
+    function updateParticipants(participants) {
+      participantsDiv.innerHTML = '';
+      if (!participants || participants.length === 0) {
+        participantsDiv.innerHTML = '<span style="color:#7f8c8d;">No participants yet</span>';
+        return;
+      }
+      participants.forEach(p => {
+        const span = document.createElement('span');
+        span.className = 'badge';
+        span.textContent = p.username + (p.userId === socket?.id ? ' (you)' : '');
+        participantsDiv.appendChild(span);
+      });
+    }
+
+    // ---- Socket connection ----
+    function connectSocket() {
+      if (socket && socket.connected) {
+        addLog('Already connected. Use "Reconnect" to reset.', 'warn');
+        return;
+      }
+      if (socket) {
+        socket.disconnect();
+        socket = null;
       }
 
-      // Helper: update status
-      function setStatus(text, type) {
-        statusText.textContent = text;
-        statusDot.className = 'dot';
-        if (type === 'online') {
-          statusDot.classList.add('online');
-        } else if (type === 'offline') {
-          statusDot.classList.add('offline');
-        } else {
-          statusDot.classList.add('connecting');
-        }
-      }
+      setStatus('Connecting...', 'connecting');
+      addLog('⏳ Connecting to server...', 'info');
 
-      // Connect function
-      function connectSocket() {
-        if (socket && socket.connected) {
-          addLog('Already connected. Use "Reconnect" to reset.', 'info');
-          return;
-        }
-
-        // Close any existing socket
-        if (socket) {
-          socket.disconnect();
-          socket = null;
-        }
-
-        setStatus('Connecting...', 'connecting');
-        addLog('⏳ Connecting with token: demo123', 'info');
-
-        // Create new connection WITH AUTH TOKEN
-        socket = io('http://localhost:3000', {
-          auth: {
-            token: 'demo123'
-          }
-        });
-
-        // ---- Event listeners ----
-
-        socket.on('connect', () => {
-          setStatus('✅ Connected', 'online');
-          addLog(`✅ Connected! Socket ID: ${socket.id}`, 'success');
-          sendBtn.disabled = false;
-          sendCustomBtn.disabled = false;
-        });
-
-        socket.on('connect_error', (err) => {
-          setStatus('❌ Connection Error', 'offline');
-          addLog(`❌ Connection error: ${err.message}`, 'error');
-          sendBtn.disabled = true;
-          sendCustomBtn.disabled = true;
-        });
-
-        socket.on('disconnect', (reason) => {
-          setStatus('❌ Disconnected', 'offline');
-          addLog(`❌ Disconnected: ${reason}`, 'error');
-          sendBtn.disabled = true;
-          sendCustomBtn.disabled = true;
-        });
-
-        // Listen for any incoming messages (we'll echo them)
-        socket.on('message', (data) => {
-          addLog(`📩 Server says: ${data}`, 'success');
-        });
-
-        // Optional: listen for a custom event if your server sends one
-        socket.on('welcome', (data) => {
-          addLog(`👋 Welcome message: ${data}`, 'info');
-        });
-      }
-
-      // Send a test message
-      function sendTestMessage() {
-        if (!socket || !socket.connected) {
-          addLog('❌ Not connected to server.', 'error');
-          return;
-        }
-        const msg = messageInput.value.trim() || 'Hello from browser!';
-        socket.emit('message', msg);
-        addLog(`📤 Sent: "${msg}"`, 'info');
-        messageInput.value = '';
-      }
-
-      // Reconnect (force close and open new)
-      function reconnect() {
-        if (socket) {
-          socket.disconnect();
-          socket = null;
-        }
-        // Clear logs (optional) – or keep them
-        // logsDiv.innerHTML = '';
-        addLog('🔄 Reconnecting...', 'info');
-        connectSocket();
-      }
-
-      // ---- Wire up buttons ----
-      sendBtn.addEventListener('click', () => {
-        // Send a default message
-        socket.emit('message', 'Test from button');
-        addLog('📤 Sent: "Test from button"', 'info');
+      socket = io('http://localhost:5000', {
+        auth: { token: 'demo123' }   // dummy token, adjust if needed
       });
 
-      sendCustomBtn.addEventListener('click', sendTestMessage);
-      messageInput.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter') sendTestMessage();
+      // ---- Socket event listeners ----
+      socket.on('connect', () => {
+        setStatus('✅ Connected', 'online');
+        addLog(`✅ Connected! Socket ID: ${socket.id}`, 'success');
+        joinBtn.disabled = false;
+        leaveBtn.disabled = false;
       });
 
-      reconnectBtn.addEventListener('click', reconnect);
+      socket.on('connect_error', (err) => {
+        setStatus('❌ Connection Error', 'offline');
+        addLog(`❌ Connection error: ${err.message}`, 'error');
+        joinBtn.disabled = true;
+        leaveBtn.disabled = true;
+      });
 
-      // ---- Initial connection ----
+      socket.on('disconnect', (reason) => {
+        setStatus('❌ Disconnected', 'offline');
+        addLog(`❌ Disconnected: ${reason}`, 'error');
+        joinBtn.disabled = true;
+        leaveBtn.disabled = true;
+        // Clear participants if disconnected
+        updateParticipants([]);
+      });
+
+      // ---- Room events ----
+      socket.on('room:participants', (data) => {
+        addLog(`📋 Participants updated: ${data.participants.length} users in "${data.roomId}"`, 'info');
+        updateParticipants(data.participants);
+        currentRoom = data.roomId;
+      });
+
+      socket.on('user-joined', (data) => {
+        addLog(`➕ ${data.username} joined the room.`, 'success');
+        // The participant list will be updated via room:participants if server sends it again,
+        // but we can also manually add if we want. We'll rely on the server's room:participants.
+      });
+
+      socket.on('user-left', (data) => {
+        addLog(`➖ ${data.username} left the room.`, 'warn');
+      });
+
+      socket.on('left-room', (data) => {
+        addLog(`👋 You left room "${data.roomId}".`, 'info');
+        updateParticipants([]);
+        currentRoom = '';
+      });
+
+      socket.on('error', (data) => {
+        addLog(`❌ Server error: ${data.message}`, 'error');
+      });
+    }
+
+    // ---- Room actions ----
+    function joinRoom() {
+      if (!socket || !socket.connected) {
+        addLog('❌ Not connected to server.', 'error');
+        return;
+      }
+      const roomId = roomInput.value.trim();
+      const username = userInput.value.trim();
+      if (!roomId || !username) {
+        addLog('❌ Room ID and Username are required.', 'error');
+        return;
+      }
+      addLog(`📤 Emitting join-room: room="${roomId}", user="${username}"`, 'info');
+      socket.emit('join-room', { roomId, username });
+      currentRoom = roomId;
+      currentUsername = username;
+    }
+
+    function leaveRoom() {
+      if (!socket || !socket.connected) {
+        addLog('❌ Not connected.', 'error');
+        return;
+      }
+      if (!currentRoom) {
+        addLog('❌ You are not in a room.', 'warn');
+        return;
+      }
+      addLog(`📤 Emitting leave-room for room "${currentRoom}"`, 'info');
+      socket.emit('leave-room');
+    }
+
+    // ---- Reconnect ----
+    function reconnect() {
+      if (socket) {
+        socket.disconnect();
+        socket = null;
+      }
+      addLog('🔄 Reconnecting...', 'info');
       connectSocket();
+    }
 
-      // Cleanup on page unload (optional)
-      window.addEventListener('beforeunload', () => {
-        if (socket) socket.disconnect();
-      });
+    // ---- Clear logs ----
+    function clearLogs() {
+      logsDiv.innerHTML = '';
+      addLog('📡 Logs cleared.', 'info');
+    }
 
-    })();
-  </script>
+    // ---- Wire UI ----
+    joinBtn.addEventListener('click', joinRoom);
+    leaveBtn.addEventListener('click', leaveRoom);
+    reconnectBtn.addEventListener('click', reconnect);
+    clearLogsBtn.addEventListener('click', clearLogs);
 
+    // ---- Auto-connect ----
+    connectSocket();
+
+    // Cleanup on page unload
+    window.addEventListener('beforeunload', () => {
+      if (socket) socket.disconnect();
+    });
+  })();
+</script>
 </body>
 </html>
