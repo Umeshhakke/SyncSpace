@@ -39,6 +39,52 @@ const Whiteboard = () => {
   // Initialize the Yjs collaboration hook when a user joins a room
   const { doc, provider, awareness, shapesArray } = useYjs(currentRoomId);
 
+  // Synchronize remote shapes from Yjs to local canvas state
+  useEffect(() => {
+    if (!shapesArray) return;
+
+    const handleObserve = (event) => {
+      // Ignore local updates to prevent infinite synchronization loops
+      if (event.transaction.local) return;
+
+      event.delta.forEach((op) => {
+        if (op.insert) {
+          // op.insert contains the inserted shape object(s)
+          const inserted = Array.isArray(op.insert) ? op.insert : [op.insert];
+          inserted.forEach((shape) => {
+            // Convert the Yjs object format to Member 3's existing shape format
+            const remoteLine = {
+              id: shape.id,
+              tool: shape.type,
+              color: shape.stroke,
+              size: shape.strokeWidth,
+              points: shape.points,
+              globalCompositeOperation:
+                shape.type === "eraser" ? "destination-out" : "source-over",
+            };
+
+            // Append remote shape to existing lines, preventing duplicate rendering
+            setLines((prev) => {
+              const alreadyExists = prev.some((line) => line.id === shape.id);
+              if (alreadyExists) {
+                return prev;
+              }
+              return [...prev, remoteLine];
+            });
+          });
+        }
+      });
+    };
+
+    // Listen to changes on shapesArray
+    shapesArray.observe(handleObserve);
+
+    // Clean up observer when the component unmounts or room changes
+    return () => {
+      shapesArray.unobserve(handleObserve);
+    };
+  }, [shapesArray, setLines]);
+
   // Helper function to display custom toast messages
   const showToast = (message, type = "info") => {
     setNotification({ message, type });
