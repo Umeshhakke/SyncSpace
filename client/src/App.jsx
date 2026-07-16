@@ -1,12 +1,10 @@
 import React from "react";
-import WhiteboardPage from "./pages/WhiteboardPage";
+import SplitLayout from "./components/Layout/SplitLayout";
+import "./styles/global.css";
+import "./styles/layout.css";
 
 function App() {
-  return (
-    <div className="App">
-      <WhiteboardPage />
-    </div>
-  );
+  return <SplitLayout />;
 }
 
 export default App;
