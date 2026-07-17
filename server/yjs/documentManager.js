@@ -40,4 +40,5 @@ module.exports = {
   deleteDocument,
   documentExists,
   getAllRoomIds,
+  docMap,
 };
