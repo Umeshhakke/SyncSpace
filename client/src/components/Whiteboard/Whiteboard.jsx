@@ -6,21 +6,61 @@ import useCanvas from "../../hooks/useCanvas";
 import socketService from "../../services/socketService";
 import useYjs from "../../hooks/useYjs";
 
-const Whiteboard = () => {
+const Whiteboard = ({ roomId, username }) => {
   const [tool, setTool] = useState("pen");
   const [color, setColor] = useState("#000000");
   const [brushSize, setBrushSize] = useState(5);
   const [stageSize, setStageSize] = useState({ width: 800, height: 600 });
+  
   const stageRef = useRef(null);
 
   // Room & socket connection states
   const [connectionStatus, setConnectionStatus] = useState("disconnected");
-  const [isJoined, setIsJoined] = useState(false);
-  const [currentRoomId, setCurrentRoomId] = useState("");
-  const [currentUsername, setCurrentUsername] = useState("");
   const [roomUsers, setRoomUsers] = useState([]);
   const [notification, setNotification] = useState(null);
 
+  // Initialize the Yjs collaboration hook when a user joins a room
+  const { doc, provider, awareness, shapesArray } = useYjs(roomId);
+
+  // ---------- YJS DELETE SHAPE ----------
+  const deleteShapeFromYjs = useCallback((shapeId) => {
+    if (!shapesArray) return;
+
+    // Find the index of the shape with matching ID
+    const index = shapesArray.toArray().findIndex(shape => shape.id === shapeId);
+    
+    if (index !== -1) {
+      // Delete the shape from the Yjs array
+      shapesArray.delete(index, 1);
+      console.log(`🗑️ Deleted shape ${shapeId} from Yjs`);
+    }
+  }, [shapesArray]);
+
+  // ---------- YJS ADD SHAPE ----------
+  const addShapeToYjs = useCallback((shapeData) => {
+    if (!shapesArray) return;
+
+    // Check if shape already exists (avoid duplicates)
+    const exists = shapesArray.toArray().some(shape => shape.id === shapeData.id);
+    
+    if (!exists && shapeData.id) {
+      // Convert local shape format to Yjs shape format
+      const yjsShape = {
+        id: shapeData.id,
+        type: shapeData.tool || "pen",
+        stroke: shapeData.color || "#000000",
+        strokeWidth: shapeData.size || 5,
+        points: shapeData.points || [],
+        createdBy: username || "anonymous",
+        timestamp: Date.now(),
+      };
+      
+      shapesArray.push([yjsShape]);
+      console.log(`🔄 Re-added shape ${shapeData.id} to Yjs (redo)`);
+    }
+  }, [shapesArray, username]);
+
+  // ---------- USE CANVAS HOOK (with Yjs integration) ----------
   const {
     lines,
     redoStack,
@@ -34,10 +74,7 @@ const Whiteboard = () => {
     clearCanvas,
     setLines,
     setRedoStack,
-  } = useCanvas();
-
-  // Initialize the Yjs collaboration hook when a user joins a room
-  const { doc, provider, awareness, shapesArray } = useYjs(currentRoomId);
+  } = useCanvas(deleteShapeFromYjs, addShapeToYjs);
 
   // Cache of synchronized shape IDs to prevent duplicate network syncs
   const syncedIdsRef = useRef(new Set());
@@ -75,10 +112,10 @@ const Whiteboard = () => {
     awareness.setLocalStateField("cursor", {
       x,
       y,
-      username: currentUsername || "anonymous",
+      username: username || "anonymous",
       color: userCursorColor,
     });
-  }, [awareness, currentUsername, userCursorColor]);
+  }, [awareness, username, userCursorColor]);
 
   // Effect to listen to remote users' cursor updates
   useEffect(() => {
@@ -123,7 +160,7 @@ const Whiteboard = () => {
     };
   }, [awareness, doc]);
 
-  // Synchronize remote shapes from Yjs to local canvas state
+  // ---------- SYNC REMOTE SHAPES FROM YJS TO LOCAL CANVAS ----------
   useEffect(() => {
     if (!shapesArray) return;
 
@@ -131,21 +168,23 @@ const Whiteboard = () => {
       // Ignore local updates to prevent infinite synchronization loops
       if (event.transaction.local) return;
 
+      let hasDeletion = false;
+
       event.delta.forEach((op) => {
+        // ---------- Handle INSERTIONS ----------
         if (op.insert) {
-          // op.insert contains the inserted shape object(s)
           const inserted = Array.isArray(op.insert) ? op.insert : [op.insert];
           inserted.forEach((shape) => {
-            // Add remote shape ID to synced cache to prevent re-syncing back
+            // Add remote shape ID to synced cache
             syncedIdsRef.current.add(shape.id);
 
-            // Convert the Yjs object format to Member 3's existing shape format
+            // Convert the Yjs object format to local shape format
             const remoteLine = {
               id: shape.id,
               tool: shape.type,
               color: shape.stroke,
               size: shape.strokeWidth,
-              points: shape.points,
+              points: shape.points || [],
               globalCompositeOperation:
                 shape.type === "eraser" ? "destination-out" : "source-over",
             };
@@ -160,7 +199,23 @@ const Whiteboard = () => {
             });
           });
         }
+
+        // ---------- Handle DELETIONS ----------
+        if (op.delete) {
+          hasDeletion = true;
+        }
       });
+
+      // If any deletion happened, synchronize local lines with Yjs array
+      if (hasDeletion) {
+        // Get all IDs currently present in the shared array
+        const remoteIds = new Set(shapesArray.toArray().map((shape) => shape.id));
+
+        setLines((prev) => {
+          // Keep only lines that either have no ID (local unsynced) or whose ID still exists in remote
+          return prev.filter((line) => !line.id || remoteIds.has(line.id));
+        });
+      }
     };
 
     // Listen to changes on shapesArray
@@ -172,7 +227,7 @@ const Whiteboard = () => {
     };
   }, [shapesArray, setLines]);
 
-  // Synchronize local shapes to Yjs when a drawing is completed
+  // ---------- SYNC LOCAL SHAPES TO YJS ----------
   useEffect(() => {
     if (!shapesArray || lines.length === 0) return;
 
@@ -192,16 +247,16 @@ const Whiteboard = () => {
     unsyncedIndices.forEach((idx) => {
       const localLine = updatedLines[idx];
       // Reuse existing ID if it exists, otherwise generate a unique one
-      const uniqueId = localLine.id || `shape-${currentUsername || "anonymous"}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+      const uniqueId = localLine.id || `shape-${username || "anonymous"}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 
       // Map the local line format to the Yjs shared shape schema
       const yjsShape = {
         id: uniqueId,
-        type: localLine.tool,
-        stroke: localLine.color,
-        strokeWidth: localLine.size,
-        points: localLine.points,
-        createdBy: currentUsername || "anonymous",
+        type: localLine.tool || "pen",
+        stroke: localLine.color || "#000000",
+        strokeWidth: localLine.size || 5,
+        points: localLine.points || [],
+        createdBy: username || "anonymous",
         timestamp: Date.now(),
         x: 0,
         y: 0,
@@ -222,13 +277,14 @@ const Whiteboard = () => {
     setLines(updatedLines);
 
     // Push the new shapes to the shared Yjs array
-    shapesArray.push(shapesToPush);
-  }, [lines, shapesArray, currentUsername, setLines]);
+    if (shapesToPush.length > 0) {
+      shapesArray.push(shapesToPush);
+    }
+  }, [lines, shapesArray, username, setLines]);
 
   // Helper function to display custom toast messages
   const showToast = (message, type = "info") => {
     setNotification({ message, type });
-    // Auto-dismiss the toast notification after 3 seconds
     const timer = setTimeout(() => {
       setNotification(null);
     }, 3000);
@@ -241,22 +297,17 @@ const Whiteboard = () => {
 
     const handleConnect = () => {
       setConnectionStatus("connected");
-      setIsJoined(true);
       if (toastTimer) clearTimeout(toastTimer);
       toastTimer = showToast("Successfully joined the room!", "success");
     };
 
     const handleDisconnect = () => {
       setConnectionStatus("disconnected");
-      setIsJoined(false);
-      setCurrentRoomId("");
-      setCurrentUsername("");
       setRoomUsers([]);
     };
 
     const handleConnectError = () => {
       setConnectionStatus("disconnected");
-      setIsJoined(false);
       if (toastTimer) clearTimeout(toastTimer);
       toastTimer = showToast("Connection failed.", "error");
     };
@@ -270,7 +321,6 @@ const Whiteboard = () => {
     socketService.on("connect_error", handleConnectError);
     socketService.on("room-users-updated", handleUsersUpdated);
 
-    // Clean up socket listeners and connection on unmount
     return () => {
       socketService.off("connect", handleConnect);
       socketService.off("disconnect", handleDisconnect);
@@ -281,18 +331,10 @@ const Whiteboard = () => {
     };
   }, []);
 
-  // Handler for joining a room
-  const handleJoin = (roomId, username) => {
-    setConnectionStatus("connecting");
-    setCurrentRoomId(roomId);
-    setCurrentUsername(username);
-    socketService.joinRoom(roomId, username);
-  };
-
   // Handler for leaving a room
   const handleLeave = () => {
-    if (currentRoomId) {
-      socketService.leaveRoom(currentRoomId);
+    if (roomId) {
+      socketService.leaveRoom(roomId);
       socketService.disconnect();
       showToast("Successfully left the room.", "info");
     }
@@ -339,7 +381,7 @@ const Whiteboard = () => {
     }
 
     // Share cursor position to remote users
-    if (awareness && currentUsername) {
+    if (awareness && username) {
       updateLocalCursor(pos.x, pos.y);
     }
   };
@@ -412,7 +454,6 @@ const Whiteboard = () => {
             <Layer>
               {remoteCursors.map((cursor) => (
                 <React.Fragment key={cursor.clientId}>
-                  {/* Visual cursor dot */}
                   <Circle
                     x={cursor.x}
                     y={cursor.y}
@@ -425,7 +466,6 @@ const Whiteboard = () => {
                     shadowOpacity={0.25}
                     listening={false}
                   />
-                  {/* Premium floating label tooltips showing username */}
                   <Label x={cursor.x + 8} y={cursor.y + 8} listening={false}>
                     <Tag
                       fill={cursor.color}
@@ -454,12 +494,11 @@ const Whiteboard = () => {
         </div>
         <RoomPanel
           connectionStatus={connectionStatus}
-          isJoined={isJoined}
-          currentRoomId={currentRoomId}
-          currentUsername={currentUsername}
+          isJoined={!!roomId && !!username}
+          currentRoomId={roomId}
+          currentUsername={username}
           users={roomUsers}
           currentSocketId={socketService.socket?.id}
-          onJoin={handleJoin}
           onLeave={handleLeave}
         />
       </div>
@@ -468,4 +507,3 @@ const Whiteboard = () => {
 };
 
 export default Whiteboard;
-
