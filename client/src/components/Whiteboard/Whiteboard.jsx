@@ -1,26 +1,58 @@
 import React, { useState, useRef, useEffect, useMemo, useCallback } from "react";
-import { Stage, Layer, Line, Circle, Text, Label, Tag } from "react-konva";
+import { Stage, Layer, Line, Circle, Text, Label, Tag, Rect, Transformer } from "react-konva";
 import Toolbar from "./Toolbar";
 import RoomPanel from "./RoomPanel";
 import useCanvas from "../../hooks/useCanvas";
 import socketService from "../../services/socketService";
 import useYjs from "../../hooks/useYjs";
 
-const Whiteboard = () => {
+const Whiteboard = ({ roomId, username, isDarkMode }) => {
+  // ---------- Tool state ----------
   const [tool, setTool] = useState("pen");
-  const [color, setColor] = useState("#000000");
+  const [color, setColor] = useState("#FF6B6B");
   const [brushSize, setBrushSize] = useState(5);
   const [stageSize, setStageSize] = useState({ width: 800, height: 600 });
-  const stageRef = useRef(null);
 
-  // Room & socket connection states
+  // ---------- Refs ----------
+  const stageRef = useRef(null);
+  const transformerRef = useRef(null);
+  const dragStartRef = useRef({});
+
+  // ---------- Shape drawing state ----------
+  const [startPoint, setStartPoint] = useState(null);
+  const [previewShape, setPreviewShape] = useState(null);
+
+  // ---------- Selection state ----------
+  const [selectedId, setSelectedId] = useState(null);
+
+  // ---------- Room & socket states ----------
   const [connectionStatus, setConnectionStatus] = useState("disconnected");
-  const [isJoined, setIsJoined] = useState(false);
-  const [currentRoomId, setCurrentRoomId] = useState("");
-  const [currentUsername, setCurrentUsername] = useState("");
   const [roomUsers, setRoomUsers] = useState([]);
   const [notification, setNotification] = useState(null);
 
+  // ---------- Yjs ----------
+  const { doc, provider, awareness, shapesArray } = useYjs(roomId);
+
+  // ---------- Yjs delete / add ----------
+  const deleteShapeFromYjs = useCallback((shapeId) => {
+    if (!shapesArray) return;
+    const index = shapesArray.toArray().findIndex(shape => shape.id === shapeId);
+    if (index !== -1) {
+      shapesArray.delete(index, 1);
+      console.log(`🗑️ Deleted shape ${shapeId} from Yjs`);
+    }
+  }, [shapesArray]);
+
+  const addShapeToYjs = useCallback((shapeData) => {
+    if (!shapesArray) return;
+    const exists = shapesArray.toArray().some(shape => shape.id === shapeData.id);
+    if (!exists && shapeData.id) {
+      shapesArray.push([shapeData]);
+      console.log(`🔄 Re-added shape ${shapeData.id} to Yjs (redo)`);
+    }
+  }, [shapesArray]);
+
+  // ---------- useCanvas hook ----------
   const {
     lines,
     redoStack,
@@ -34,20 +66,17 @@ const Whiteboard = () => {
     clearCanvas,
     setLines,
     setRedoStack,
-  } = useCanvas();
+  } = useCanvas(deleteShapeFromYjs, addShapeToYjs);
 
-  // Initialize the Yjs collaboration hook when a user joins a room
-  const { doc, provider, awareness, shapesArray } = useYjs(currentRoomId);
-
-  // Cache of synchronized shape IDs to prevent duplicate network syncs
+  // ---------- Sync cache ----------
   const syncedIdsRef = useRef(new Set());
+  const updateTimeoutRef = useRef(null);
 
-  // Clear synchronization cache when room or shapesArray changes
   useEffect(() => {
     syncedIdsRef.current.clear();
   }, [shapesArray]);
 
-  // Generate a random cursor color once per session
+  // ---------- User cursor color ----------
   const userCursorColor = useMemo(() => {
     const colors = [
       "#e91e63", "#9c27b0", "#673ab7", "#3f51b5",
@@ -57,44 +86,33 @@ const Whiteboard = () => {
     return colors[Math.floor(Math.random() * colors.length)];
   }, []);
 
-  // State to hold remote users' cursor presence data
+  // ---------- Remote cursors ----------
   const [remoteCursors, setRemoteCursors] = useState([]);
-
-  // Ref to track last cursor update timestamp for throttling
   const lastCursorUpdateRef = useRef(0);
 
-  // Callback to update the local user's presence state in Yjs Awareness
   const updateLocalCursor = useCallback((x, y) => {
     if (!awareness) return;
-
     const now = Date.now();
-    // Throttle cursor updates to 50ms intervals
     if (now - lastCursorUpdateRef.current < 50) return;
     lastCursorUpdateRef.current = now;
-
     awareness.setLocalStateField("cursor", {
       x,
       y,
-      username: currentUsername || "anonymous",
+      username: username || "anonymous",
       color: userCursorColor,
     });
-  }, [awareness, currentUsername, userCursorColor]);
+  }, [awareness, username, userCursorColor]);
 
-  // Effect to listen to remote users' cursor updates
   useEffect(() => {
     if (!awareness) {
       setRemoteCursors([]);
       return;
     }
-
     const handleAwarenessChange = () => {
       const states = awareness.getStates();
       const cursors = [];
-
       states.forEach((state, clientId) => {
-        // Do not render the local user's own cursor
         if (clientId === doc?.clientID) return;
-
         if (state.cursor) {
           cursors.push({
             clientId,
@@ -105,172 +123,191 @@ const Whiteboard = () => {
           });
         }
       });
-
       setRemoteCursors(cursors);
     };
-
     awareness.on("change", handleAwarenessChange);
-    // Initial fetch of active cursors
     handleAwarenessChange();
-
     return () => {
       if (awareness) {
         awareness.off("change", handleAwarenessChange);
-        // Clear the local cursor presence when leaving the room
         awareness.setLocalStateField("cursor", null);
       }
       setRemoteCursors([]);
     };
   }, [awareness, doc]);
 
-  // Synchronize remote shapes from Yjs to local canvas state
+  // ---------- Sync remote shapes from Yjs ----------
   useEffect(() => {
     if (!shapesArray) return;
-
     const handleObserve = (event) => {
-      // Ignore local updates to prevent infinite synchronization loops
       if (event.transaction.local) return;
-
+      let hasDeletion = false;
       event.delta.forEach((op) => {
         if (op.insert) {
-          // op.insert contains the inserted shape object(s)
           const inserted = Array.isArray(op.insert) ? op.insert : [op.insert];
           inserted.forEach((shape) => {
-            // Add remote shape ID to synced cache to prevent re-syncing back
             syncedIdsRef.current.add(shape.id);
-
-            // Convert the Yjs object format to Member 3's existing shape format
-            const remoteLine = {
-              id: shape.id,
-              tool: shape.type,
-              color: shape.stroke,
-              size: shape.strokeWidth,
-              points: shape.points,
-              globalCompositeOperation:
-                shape.type === "eraser" ? "destination-out" : "source-over",
-            };
-
-            // Append remote shape to existing lines, preventing duplicate rendering
+            let localItem;
+            if (shape.points && shape.points.length > 0) {
+              localItem = {
+                id: shape.id,
+                type: "freehand",
+                tool: shape.type || "pen",
+                color: shape.stroke,
+                size: shape.strokeWidth,
+                points: shape.points,
+                globalCompositeOperation: shape.type === "eraser" ? "destination-out" : "source-over",
+              };
+            } else {
+              localItem = {
+                id: shape.id,
+                type: shape.type,
+                startX: shape.startX,
+                startY: shape.startY,
+                endX: shape.endX,
+                endY: shape.endY,
+                color: shape.color,
+                strokeWidth: shape.strokeWidth,
+                createdBy: shape.createdBy,
+                timestamp: shape.timestamp,
+              };
+            }
             setLines((prev) => {
-              const alreadyExists = prev.some((line) => line.id === shape.id);
-              if (alreadyExists) {
-                return prev;
-              }
-              return [...prev, remoteLine];
+              if (prev.some((item) => item.id === shape.id)) return prev;
+              return [...prev, localItem];
             });
           });
         }
+        if (op.delete) hasDeletion = true;
       });
+      if (hasDeletion) {
+        const remoteIds = new Set(shapesArray.toArray().map((shape) => shape.id));
+        setLines((prev) => prev.filter((item) => !item.id || remoteIds.has(item.id)));
+        if (selectedId && !remoteIds.has(selectedId)) {
+          setSelectedId(null);
+        }
+      }
     };
-
-    // Listen to changes on shapesArray
     shapesArray.observe(handleObserve);
+    return () => shapesArray.unobserve(handleObserve);
+  }, [shapesArray, setLines, selectedId]);
 
-    // Clean up observer when the component unmounts or room changes
-    return () => {
-      shapesArray.unobserve(handleObserve);
-    };
-  }, [shapesArray, setLines]);
-
-  // Synchronize local shapes to Yjs when a drawing is completed
+  // ---------- Sync local shapes to Yjs ----------
   useEffect(() => {
     if (!shapesArray || lines.length === 0) return;
-
-    // Identify unsynced lines (lines that have no ID or are not in the sync cache)
     const unsyncedIndices = [];
     lines.forEach((line, idx) => {
       if (!line.id || !syncedIdsRef.current.has(line.id)) {
         unsyncedIndices.push(idx);
       }
     });
-
     if (unsyncedIndices.length === 0) return;
-
     const shapesToPush = [];
     const updatedLines = [...lines];
-
     unsyncedIndices.forEach((idx) => {
-      const localLine = updatedLines[idx];
-      // Reuse existing ID if it exists, otherwise generate a unique one
-      const uniqueId = localLine.id || `shape-${currentUsername || "anonymous"}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-
-      // Map the local line format to the Yjs shared shape schema
-      const yjsShape = {
-        id: uniqueId,
-        type: localLine.tool,
-        stroke: localLine.color,
-        strokeWidth: localLine.size,
-        points: localLine.points,
-        createdBy: currentUsername || "anonymous",
-        timestamp: Date.now(),
-        x: 0,
-        y: 0,
-      };
-
+      const localItem = updatedLines[idx];
+      let uniqueId = localItem.id || `shape-${username || "anonymous"}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+      let yjsShape = { id: uniqueId };
+      if (localItem.type === "freehand" || localItem.tool === "pen" || localItem.tool === "eraser") {
+        yjsShape = {
+          id: uniqueId,
+          type: localItem.tool || "pen",
+          stroke: localItem.color,
+          strokeWidth: localItem.size,
+          points: localItem.points || [],
+          createdBy: username || "anonymous",
+          timestamp: Date.now(),
+        };
+      } else {
+        yjsShape = {
+          id: uniqueId,
+          type: localItem.type,
+          startX: localItem.startX,
+          startY: localItem.startY,
+          endX: localItem.endX,
+          endY: localItem.endY,
+          color: localItem.color,
+          strokeWidth: localItem.strokeWidth,
+          createdBy: username || "anonymous",
+          timestamp: Date.now(),
+        };
+      }
       shapesToPush.push(yjsShape);
-      // Register in sync cache immediately to block concurrent duplicates
       syncedIdsRef.current.add(uniqueId);
-
-      // Update the local line with the generated unique ID
-      updatedLines[idx] = {
-        ...localLine,
-        id: uniqueId,
-      };
+      updatedLines[idx] = { ...localItem, id: uniqueId };
     });
-
-    // Update lines state to contain the generated IDs
     setLines(updatedLines);
+    if (shapesToPush.length > 0) {
+      shapesArray.push(shapesToPush);
+    }
+  }, [lines, shapesArray, username, setLines]);
 
-    // Push the new shapes to the shared Yjs array
-    shapesArray.push(shapesToPush);
-  }, [lines, shapesArray, currentUsername, setLines]);
+  // ---------- Update shape in Yjs ----------
+  const updateShapeInYjs = useCallback((shape) => {
+    if (!shapesArray) return;
+    const arr = shapesArray.toArray();
+    const index = arr.findIndex(s => s.id === shape.id);
+    if (index !== -1) {
+      let yjsShape;
+      if (shape.points && shape.points.length > 0) {
+        yjsShape = {
+          id: shape.id,
+          type: shape.type || "pen",
+          stroke: shape.color,
+          strokeWidth: shape.size,
+          points: shape.points,
+          createdBy: shape.createdBy || username,
+          timestamp: Date.now(),
+        };
+      } else {
+        yjsShape = {
+          id: shape.id,
+          type: shape.type,
+          startX: shape.startX,
+          startY: shape.startY,
+          endX: shape.endX,
+          endY: shape.endY,
+          color: shape.color,
+          strokeWidth: shape.strokeWidth,
+          createdBy: shape.createdBy || username,
+          timestamp: Date.now(),
+        };
+      }
+      shapesArray.delete(index, 1);
+      shapesArray.insert(index, [yjsShape]);
+      console.log(`📦 Updated shape ${shape.id} in Yjs`);
+    }
+  }, [shapesArray, username]);
 
-  // Helper function to display custom toast messages
+  // ---------- Toast helper ----------
   const showToast = (message, type = "info") => {
     setNotification({ message, type });
-    // Auto-dismiss the toast notification after 3 seconds
-    const timer = setTimeout(() => {
-      setNotification(null);
-    }, 3000);
+    const timer = setTimeout(() => setNotification(null), 3000);
     return timer;
   };
 
-  // Listen to socket connection and user events
+  // ---------- Socket listeners ----------
   useEffect(() => {
     let toastTimer;
-
     const handleConnect = () => {
       setConnectionStatus("connected");
-      setIsJoined(true);
       if (toastTimer) clearTimeout(toastTimer);
       toastTimer = showToast("Successfully joined the room!", "success");
     };
-
     const handleDisconnect = () => {
       setConnectionStatus("disconnected");
-      setIsJoined(false);
-      setCurrentRoomId("");
-      setCurrentUsername("");
       setRoomUsers([]);
     };
-
     const handleConnectError = () => {
       setConnectionStatus("disconnected");
-      setIsJoined(false);
       if (toastTimer) clearTimeout(toastTimer);
       toastTimer = showToast("Connection failed.", "error");
     };
-
-    const handleUsersUpdated = (usersList) => {
-      setRoomUsers(usersList);
-    };
-
+    const handleUsersUpdated = (usersList) => setRoomUsers(usersList);
     socketService.on("connect", handleConnect);
     socketService.on("disconnect", handleDisconnect);
     socketService.on("connect_error", handleConnectError);
     socketService.on("room-users-updated", handleUsersUpdated);
-
-    // Clean up socket listeners and connection on unmount
     return () => {
       socketService.off("connect", handleConnect);
       socketService.off("disconnect", handleDisconnect);
@@ -281,24 +318,15 @@ const Whiteboard = () => {
     };
   }, []);
 
-  // Handler for joining a room
-  const handleJoin = (roomId, username) => {
-    setConnectionStatus("connecting");
-    setCurrentRoomId(roomId);
-    setCurrentUsername(username);
-    socketService.joinRoom(roomId, username);
-  };
-
-  // Handler for leaving a room
   const handleLeave = () => {
-    if (currentRoomId) {
-      socketService.leaveRoom(currentRoomId);
+    if (roomId) {
+      socketService.leaveRoom(roomId);
       socketService.disconnect();
       showToast("Successfully left the room.", "info");
     }
   };
 
-  // Handle window resize for responsive canvas
+  // ---------- Resize handler ----------
   useEffect(() => {
     const handleResize = () => {
       const container = document.querySelector(".canvas-container");
@@ -310,61 +338,376 @@ const Whiteboard = () => {
         });
       }
     };
-
     handleResize();
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
-  // Mouse event handlers
+  // ---------- Transformer effect ----------
+  useEffect(() => {
+    if (selectedId && transformerRef.current && stageRef.current) {
+      const stage = stageRef.current;
+      const selectedNode = stage.findOne(`#${selectedId}`);
+      if (selectedNode) {
+        transformerRef.current.nodes([selectedNode]);
+        transformerRef.current.getLayer().batchDraw();
+      } else {
+        transformerRef.current.nodes([]);
+      }
+    } else if (transformerRef.current) {
+      transformerRef.current.nodes([]);
+    }
+  }, [selectedId]);
+
+  // ---------- Shape creation helper ----------
+  const createShapeObject = (type, startX, startY, endX, endY) => {
+    const id = `shape-${username || "anonymous"}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    return {
+      id,
+      type,
+      startX,
+      startY,
+      endX,
+      endY,
+      color: tool === "eraser" ? "#ffffff" : color,
+      strokeWidth: tool === "eraser" ? brushSize * 2 : brushSize,
+      createdBy: username || "anonymous",
+      timestamp: Date.now(),
+    };
+  };
+
+  // ---------- Mouse handlers ----------
   const handleMouseDown = (e) => {
     const pos = e.target.getStage().getPointerPosition();
+    if (!pos) return;
+
+    if (tool === "select") {
+      if (e.target === e.target.getStage()) {
+        setSelectedId(null);
+      }
+      return;
+    }
+
+    const isShapeTool = ["rectangle", "circle", "triangle", "line"].includes(tool);
+
+    if (isShapeTool) {
+      setStartPoint({ x: pos.x, y: pos.y });
+      setIsDrawing(true);
+      setPreviewShape(null);
+      return;
+    }
+
     const newLine = {
+      type: "freehand",
       tool: tool,
       color: tool === "eraser" ? "#ffffff" : color,
       size: tool === "eraser" ? brushSize * 2 : brushSize,
       points: [pos.x, pos.y],
-      globalCompositeOperation:
-        tool === "eraser" ? "destination-out" : "source-over",
+      globalCompositeOperation: tool === "eraser" ? "destination-out" : "source-over",
     };
     startDrawing(newLine);
   };
 
   const handleMouseMove = (e) => {
     const pos = e.target.getStage().getPointerPosition();
+    if (!pos) return;
 
-    // Draw locally if mouse button is down
+    const isShapeTool = ["rectangle", "circle", "triangle", "line"].includes(tool);
+
+    if (isShapeTool && isDrawing && startPoint) {
+      const shape = createShapeObject(tool, startPoint.x, startPoint.y, pos.x, pos.y);
+      setPreviewShape(shape);
+      return;
+    }
+
     if (isDrawing) {
       draw(pos.x, pos.y);
     }
 
-    // Share cursor position to remote users
-    if (awareness && currentUsername) {
+    if (awareness && username && tool !== "select") {
       updateLocalCursor(pos.x, pos.y);
     }
   };
 
-  const handleMouseUp = () => {
+  const handleMouseUp = (e) => {
+    const isShapeTool = ["rectangle", "circle", "triangle", "line"].includes(tool);
+
+    if (isShapeTool && isDrawing && startPoint) {
+      const pos = e.target.getStage().getPointerPosition();
+      if (!pos) {
+        setIsDrawing(false);
+        setStartPoint(null);
+        setPreviewShape(null);
+        return;
+      }
+      const shape = createShapeObject(tool, startPoint.x, startPoint.y, pos.x, pos.y);
+      setLines((prev) => [...prev, shape]);
+      setIsDrawing(false);
+      setStartPoint(null);
+      setPreviewShape(null);
+      return;
+    }
+
     stopDrawing();
+    setIsDrawing(false);
   };
 
   const handleMouseLeave = () => {
     if (isDrawing) {
-      stopDrawing();
+      if (["rectangle", "circle", "triangle", "line"].includes(tool)) {
+        setIsDrawing(false);
+        setStartPoint(null);
+        setPreviewShape(null);
+      } else {
+        stopDrawing();
+      }
     }
-    // Remove cursor representation on remote screens when local user leaves stage area
     if (awareness) {
       awareness.setLocalStateField("cursor", null);
     }
   };
 
+  // ---------- Render item ----------
+  const renderDrawing = (item, index) => {
+    // ---------- FREEHAND LINES ----------
+    if (item.type === "freehand" || item.tool === "pen" || item.tool === "eraser") {
+      const isSelected = selectedId === item.id;
+      const isSelectable = tool === "select";
+
+      return (
+        <Line
+          key={index}
+          id={item.id}
+          points={item.points}
+          stroke={item.color}
+          // strokeWidth={item.size}
+          tension={0.5}
+          lineCap="round"
+          lineJoin="round"
+          globalCompositeOperation={item.globalCompositeOperation || "source-over"}
+          draggable={isSelectable}
+          listening={isSelectable}
+          hitStrokeWidth={Math.max(item.size, 8)}
+          onClick={(e) => {
+            e.cancelBubble = true;
+            if (isSelectable) setSelectedId(item.id);
+          }}
+          onTap={(e) => {
+            e.cancelBubble = true;
+            if (isSelectable) setSelectedId(item.id);
+          }}
+          onDragStart={(e) => {
+            const node = e.target;
+            dragStartRef.current[item.id] = {
+              initialX: node.x(),
+              initialY: node.y(),
+              originalPoints: [...item.points],
+            };
+          }}
+          onDragEnd={(e) => {
+            if (!isSelectable) return;
+            const node = e.target;
+            const startData = dragStartRef.current[item.id];
+            if (!startData) return;
+            
+            const dx = node.x() - startData.initialX;
+            const dy = node.y() - startData.initialY;
+            
+            if (dx === 0 && dy === 0) {
+              delete dragStartRef.current[item.id];
+              return;
+            }
+            
+            const newPoints = startData.originalPoints.map((p, i) => {
+              return i % 2 === 0 ? p + dx : p + dy;
+            });
+            
+            const updatedItem = { ...item, points: newPoints };
+            setLines((prev) => prev.map((l) => (l.id === item.id ? updatedItem : l)));
+            
+            // Reset node position to (0,0) after updating internal data
+            node.x(0);
+            node.y(0);
+            
+            const yjsShape = {
+              id: item.id,
+              type: item.tool || "pen",
+              stroke: item.color,
+              strokeWidth: item.size,
+              points: newPoints,
+              createdBy: item.createdBy || username,
+              timestamp: Date.now(),
+            };
+            updateShapeInYjs(yjsShape);
+            delete dragStartRef.current[item.id];
+          }}
+          strokeWidth={isSelected ? item.size + 2 : item.size}
+          fill={isSelected ? "rgba(77, 171, 247, 0.05)" : "transparent"}
+        />
+      );
+    }
+
+    // ---------- SHAPES ----------
+    const { startX, startY, endX, endY, color, strokeWidth, type, id } = item;
+    const width = endX - startX;
+    const height = endY - startY;
+    const isSelected = selectedId === id;
+
+    const shapeProps = {
+      id: id,
+      stroke: color,
+      strokeWidth: isSelected ? strokeWidth + 2 : strokeWidth,
+      draggable: tool === "select",
+      listening: true,
+      onClick: (e) => {
+        e.cancelBubble = true;
+        if (tool === "select") setSelectedId(id);
+      },
+      onTap: (e) => {
+        e.cancelBubble = true;
+        if (tool === "select") setSelectedId(id);
+      },
+      onDragStart: (e) => {
+        const node = e.target;
+        dragStartRef.current[id] = {
+          initialX: node.x(),
+          initialY: node.y(),
+          originalStartX: startX,
+          originalStartY: startY,
+          originalEndX: endX,
+          originalEndY: endY,
+        };
+      },
+      onDragEnd: (e) => {
+        if (tool !== "select") return;
+        const node = e.target;
+        const startData = dragStartRef.current[id];
+        if (!startData) return;
+        
+        const dx = node.x() - startData.initialX;
+        const dy = node.y() - startData.initialY;
+        
+        if (dx === 0 && dy === 0) {
+          delete dragStartRef.current[id];
+          return;
+        }
+        
+        const newStartX = startData.originalStartX + dx;
+        const newStartY = startData.originalStartY + dy;
+        const newEndX = startData.originalEndX + dx;
+        const newEndY = startData.originalEndY + dy;
+        
+        const updatedItem = {
+          ...item,
+          startX: newStartX,
+          startY: newStartY,
+          endX: newEndX,
+          endY: newEndY,
+        };
+        
+        setLines((prev) => prev.map((l) => (l.id === id ? updatedItem : l)));
+        
+        // Reset node position to (0,0) after updating internal data
+        node.x(0);
+        node.y(0);
+        
+        const yjsShape = {
+          id: id,
+          type: type,
+          startX: newStartX,
+          startY: newStartY,
+          endX: newEndX,
+          endY: newEndY,
+          color: color,
+          strokeWidth: strokeWidth,
+          createdBy: item.createdBy || username,
+          timestamp: Date.now(),
+        };
+        updateShapeInYjs(yjsShape);
+        delete dragStartRef.current[id];
+      },
+      fill: isSelected ? "rgba(77, 171, 247, 0.1)" : "transparent",
+    };
+
+    switch (type) {
+      case "rectangle": {
+        const rectX = Math.min(startX, endX);
+        const rectY = Math.min(startY, endY);
+        const rectW = Math.abs(width);
+        const rectH = Math.abs(height);
+        return (
+          <Rect
+            key={index}
+            {...shapeProps}
+            x={rectX}
+            y={rectY}
+            width={rectW}
+            height={rectH}
+          />
+        );
+      }
+      case "circle": {
+        const cx = (startX + endX) / 2;
+        const cy = (startY + endY) / 2;
+        const radius = Math.max(Math.abs(width), Math.abs(height)) / 2;
+        return (
+          <Circle
+            key={index}
+            {...shapeProps}
+            x={cx}
+            y={cy}
+            radius={radius}
+          />
+        );
+      }
+      case "triangle": {
+        const baseMidX = (startX + endX) / 2;
+        const baseMidY = (startY + endY) / 2;
+        const dx = endX - startX;
+        const dy = endY - startY;
+        const len = Math.sqrt(dx * dx + dy * dy);
+        if (len === 0) return null;
+        const perpX = -dy / len;
+        const perpY = dx / len;
+        const heightThird = len * 0.866;
+        const thirdX = baseMidX + perpX * heightThird;
+        const thirdY = baseMidY + perpY * heightThird;
+        const points = [startX, startY, endX, endY, thirdX, thirdY, startX, startY];
+        return (
+          <Line
+            key={index}
+            {...shapeProps}
+            points={points}
+            closed
+          />
+        );
+      }
+      case "line": {
+        return (
+          <Line
+            key={index}
+            {...shapeProps}
+            points={[startX, startY, endX, endY]}
+            lineCap="round"
+          />
+        );
+      }
+      default:
+        return null;
+    }
+  };
+
+  // ---------- Render ----------
   return (
-    <div className="whiteboard-wrapper">
-      {notification && (
-        <div className={`toast toast-${notification.type}`}>
-          {notification.message}
-        </div>
-      )}
+    <div
+      className="whiteboard-wrapper"
+      style={{
+        background: isDarkMode ? "#0d1117" : "#ffffff",
+        height: "100%",
+        display: "flex",
+        flexDirection: "column",
+      }}
+    >
       <Toolbar
         tool={tool}
         setTool={setTool}
@@ -377,9 +720,10 @@ const Whiteboard = () => {
         clearCanvas={clearCanvas}
         canUndo={lines.length > 0}
         canRedo={redoStack.length > 0}
+        isDarkMode={isDarkMode}
       />
-      <div className="whiteboard-main-layout">
-        <div className="canvas-container">
+      <div className="whiteboard-main-layout" style={{ flex: 1, position: "relative" }}>
+        <div className="canvas-container" style={{ width: "100%", height: "100%" }}>
           <Stage
             ref={stageRef}
             width={stageSize.width}
@@ -388,31 +732,30 @@ const Whiteboard = () => {
             onMouseMove={handleMouseMove}
             onMouseUp={handleMouseUp}
             onMouseLeave={handleMouseLeave}
-            style={{ backgroundColor: "#ffffff", cursor: "crosshair" }}
+            style={{
+              backgroundColor: isDarkMode ? "#0d1117" : "#ffffff",
+              cursor: tool === "select" ? "default" : "crosshair",
+              display: "block",
+            }}
           >
             <Layer>
-              {lines.map((line, i) => (
-                <Line
-                  key={i}
-                  points={line.points}
-                  stroke={line.color}
-                  strokeWidth={line.size}
-                  tension={0.5}
-                  lineCap="round"
-                  lineJoin="round"
-                  globalCompositeOperation={
-                    line.globalCompositeOperation || "source-over"
-                  }
-                  hitStrokeWidth={0}
-                  listening={false}
-                />
-              ))}
+              {lines.map((item, i) => renderDrawing(item, i))}
+              {previewShape && renderDrawing(previewShape, "preview")}
             </Layer>
-            {/* Dedicated Layer for rendering remote users' cursors */}
+            <Layer>
+              <Transformer
+                ref={transformerRef}
+                borderColor="#4dabf7"
+                anchorStrokeColor="#4dabf7"
+                anchorFillColor="#ffffff"
+                anchorSize={8}
+                rotateEnabled={false}
+                enabledAnchors={["top-left", "top-right", "bottom-left", "bottom-right"]}
+              />
+            </Layer>
             <Layer>
               {remoteCursors.map((cursor) => (
                 <React.Fragment key={cursor.clientId}>
-                  {/* Visual cursor dot */}
                   <Circle
                     x={cursor.x}
                     y={cursor.y}
@@ -425,7 +768,6 @@ const Whiteboard = () => {
                     shadowOpacity={0.25}
                     listening={false}
                   />
-                  {/* Premium floating label tooltips showing username */}
                   <Label x={cursor.x + 8} y={cursor.y + 8} listening={false}>
                     <Tag
                       fill={cursor.color}
@@ -454,18 +796,36 @@ const Whiteboard = () => {
         </div>
         <RoomPanel
           connectionStatus={connectionStatus}
-          isJoined={isJoined}
-          currentRoomId={currentRoomId}
-          currentUsername={currentUsername}
+          isJoined={!!roomId && !!username}
+          currentRoomId={roomId}
+          currentUsername={username}
           users={roomUsers}
           currentSocketId={socketService.socket?.id}
-          onJoin={handleJoin}
           onLeave={handleLeave}
+          isDarkMode={isDarkMode}
         />
       </div>
+      {notification && (
+        <div
+          className={`toast toast-${notification.type}`}
+          style={{
+            position: "fixed",
+            bottom: "20px",
+            left: "50%",
+            transform: "translateX(-50%)",
+            background: notification.type === "error" ? "#e74c3c" : "#2ecc71",
+            color: "white",
+            padding: "0.5rem 1.5rem",
+            borderRadius: "8px",
+            boxShadow: "0 4px 12px rgba(0,0,0,0.2)",
+            zIndex: 1000,
+          }}
+        >
+          {notification.message}
+        </div>
+      )}
     </div>
   );
 };
 
 export default Whiteboard;
-

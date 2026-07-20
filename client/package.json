@@ -12,7 +12,7 @@
     "konva": "^9.2.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
-    "react-konva": "^18.2.10",
+    "react-konva": "^18.2.16",
     "react-router-dom": "^7.18.1",
     "socket.io-client": "^4.8.3",
     "y-websocket": "^3.0.0",

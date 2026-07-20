@@ -35,10 +35,13 @@ const useYjs = (roomId) => {
 
     // 2. Read the server URL from Vite environment variables (VITE_YJS_SERVER_URL)
     // Fallback to local default port 1234
-    const serverUrl = import.meta.env.VITE_YJS_SERVER_URL || "ws://localhost:1234";
+    // 2. Read the server URL from Vite environment variables
+const serverUrl = import.meta.env.VITE_YJS_SERVER_URL || "ws://localhost:5000";
 
-    // 3. Initialize the WebsocketProvider to handle connection & state sync
-    const provider = new WebsocketProvider(serverUrl, roomId, doc);
+console.log("Connecting to:", serverUrl, "Room:", roomId);
+
+// 3. Initialize the WebsocketProvider
+const provider = new WebsocketProvider(serverUrl, roomId, doc);
 
     // 4. Access the shared Yjs Array for shape drawings (named "shapes" as required)
     const shapesArray = doc.getArray("shapes");

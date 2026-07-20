@@ -1,0 +1,566 @@
+/* ============================================
+   TOOLBAR - Fully Responsive
+   ============================================ */
+
+/* ---------- Base Variables ---------- */
+:root {
+  --toolbar-bg: #ffffff;
+  --toolbar-border: #e9ecef;
+  --toolbar-text: #495057;
+  --toolbar-text-secondary: #868e96;
+  --toolbar-hover: #f1f3f5;
+  --toolbar-active-bg: #e7f3ff;
+  --toolbar-active-border: #4dabf7;
+  --toolbar-active-color: #1c7ed6;
+  --toolbar-input-bg: #f8f9fa;
+  --toolbar-input-border: #e9ecef;
+  --toolbar-shadow: rgba(0, 0, 0, 0.06);
+  --toolbar-status-bg: #f8f9fa;
+  --toolbar-status-border: #e9ecef;
+  --toolbar-badge-bg: #4dabf7;
+  --toolbar-danger-hover: #fff5f5;
+  --toolbar-danger-border: #ff6b6b;
+  --toolbar-danger-color: #e03131;
+}
+
+/* ---------- Dark Mode ---------- */
+.toolbar-container.dark {
+  --toolbar-bg: #161b22;
+  --toolbar-border: #30363d;
+  --toolbar-text: #c9d1d9;
+  --toolbar-text-secondary: #8b949e;
+  --toolbar-hover: #21262d;
+  --toolbar-active-bg: #1c2333;
+  --toolbar-active-border: #58a6ff;
+  --toolbar-active-color: #58a6ff;
+  --toolbar-input-bg: #21262d;
+  --toolbar-input-border: #30363d;
+  --toolbar-shadow: rgba(0, 0, 0, 0.3);
+  --toolbar-status-bg: #21262d;
+  --toolbar-status-border: #30363d;
+  --toolbar-badge-bg: #58a6ff;
+  --toolbar-danger-hover: #331a1a;
+  --toolbar-danger-border: #f85149;
+  --toolbar-danger-color: #f85149;
+}
+
+/* ---------- Container ---------- */
+.toolbar-container {
+  background: var(--toolbar-bg);
+  border-bottom: 1px solid var(--toolbar-border);
+  padding: 0.25rem 0.4rem;
+  overflow-x: auto;
+  overflow-y: hidden;
+  user-select: none;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  box-shadow: 0 1px 4px var(--toolbar-shadow);
+  transition: all 0.3s ease;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+}
+
+/* ---------- Toolbar Flex ---------- */
+.toolbar {
+  display: flex;
+  align-items: center;
+  gap: 0.15rem;
+  flex-wrap: nowrap;
+  min-width: fit-content;
+  width: 100%;
+  justify-content: flex-start;
+}
+
+/* ---------- Sections ---------- */
+.toolbar-section {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 0.1rem;
+  padding: 0 0.15rem;
+  flex-shrink: 0;
+}
+
+.toolbar-section-label {
+  display: none;
+}
+
+.toolbar-group {
+  display: flex;
+  gap: 0.05rem;
+  align-items: center;
+}
+
+.toolbar-divider {
+  width: 1px;
+  background: var(--toolbar-border);
+  height: 28px;
+  margin: 0 0.15rem;
+  flex-shrink: 0;
+  transition: background 0.3s ease;
+}
+
+/* ---------- Buttons ---------- */
+.toolbar-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 0.1rem 0.25rem;
+  border: 2px solid transparent;
+  border-radius: 4px;
+  background: transparent;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  min-width: 28px;
+  height: 32px;
+  color: var(--toolbar-text);
+  position: relative;
+  flex-shrink: 0;
+}
+
+.toolbar-btn .toolbar-btn-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: inherit;
+  line-height: 1;
+}
+
+.toolbar-btn .toolbar-btn-icon svg {
+  stroke: currentColor;
+  width: 14px;
+  height: 14px;
+}
+
+.toolbar-btn:hover {
+  background: var(--toolbar-hover);
+  border-radius: 4px;
+}
+
+.toolbar-btn:active {
+  transform: scale(0.95);
+}
+
+.toolbar-btn.active {
+  background: var(--toolbar-active-bg);
+  border-color: var(--toolbar-active-border);
+  color: var(--toolbar-active-color);
+  box-shadow: 0 0 0 2px rgba(77, 171, 247, 0.15);
+}
+
+.toolbar-btn.active .toolbar-btn-icon svg {
+  stroke: var(--toolbar-active-color);
+}
+
+.toolbar-btn.disabled,
+.toolbar-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  transform: none !important;
+}
+
+.toolbar-btn-danger:hover:not(:disabled) {
+  background: var(--toolbar-danger-hover);
+  border-color: var(--toolbar-danger-border);
+  color: var(--toolbar-danger-color);
+}
+
+.toolbar-btn-danger:hover:not(:disabled) .toolbar-btn-icon svg {
+  stroke: var(--toolbar-danger-color);
+}
+
+/* ---------- Button Labels (Hidden by default) ---------- */
+.toolbar-btn-label {
+  display: none;
+}
+
+/* ---------- Color Picker ---------- */
+.color-picker-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 0.2rem;
+  background: var(--toolbar-input-bg);
+  border: 1.5px solid var(--toolbar-input-border);
+  border-radius: 4px;
+  padding: 0.05rem 0.15rem 0.05rem 0.05rem;
+  transition: all 0.3s ease;
+  height: 30px;
+  flex-shrink: 0;
+}
+
+.color-picker-wrapper:focus-within {
+  border-color: var(--toolbar-active-border);
+}
+
+.color-picker {
+  width: 22px;
+  height: 22px;
+  border: none;
+  border-radius: 3px;
+  cursor: pointer;
+  padding: 0;
+  background: none;
+  flex-shrink: 0;
+}
+
+.color-picker:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.color-hex {
+  display: none;
+}
+
+/* ---------- Brush Size ---------- */
+.brush-size-control {
+  display: flex;
+  align-items: center;
+  gap: 0.2rem;
+  background: var(--toolbar-input-bg);
+  border: 1.5px solid var(--toolbar-input-border);
+  border-radius: 4px;
+  padding: 0.05rem 0.2rem;
+  height: 30px;
+  transition: all 0.3s ease;
+  flex-shrink: 0;
+}
+
+.brush-size-preview {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+}
+
+.brush-size-dot {
+  border-radius: 50%;
+  transition: all 0.15s ease;
+  display: block;
+}
+
+.brush-slider {
+  width: 44px;
+  height: 3px;
+  -webkit-appearance: none;
+  appearance: none;
+  background: var(--toolbar-border);
+  border-radius: 2px;
+  outline: none;
+  cursor: pointer;
+  transition: background 0.3s ease;
+  flex-shrink: 0;
+}
+
+.brush-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--toolbar-active-border);
+  cursor: pointer;
+  border: 1.5px solid var(--toolbar-bg);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
+}
+
+.brush-slider::-moz-range-thumb {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--toolbar-active-border);
+  cursor: pointer;
+  border: 1.5px solid var(--toolbar-bg);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
+}
+
+.brush-size-value {
+  font-size: 0.5rem;
+  font-weight: 600;
+  color: var(--toolbar-text);
+  min-width: 18px;
+  text-align: center;
+  font-family: 'Courier New', monospace;
+  transition: color 0.3s ease;
+  flex-shrink: 0;
+}
+
+/* ---------- Status (Hidden by default) ---------- */
+.toolbar-info {
+  display: none;
+}
+
+.toolbar-status {
+  display: none;
+}
+
+/* ============================================
+   RESPONSIVE BREAKPOINTS
+   ============================================ */
+
+/* ---------- Small Screens (Tablets, Small Laptops) ---------- */
+@media (min-width: 481px) and (max-width: 1024px) {
+  .toolbar-container {
+    padding: 0.3rem 0.5rem;
+    min-height: 40px;
+  }
+
+  .toolbar {
+    gap: 0.1rem;
+  }
+
+  .toolbar-section {
+    padding: 0 0.1rem;
+  }
+
+  .toolbar-btn {
+    min-width: 26px;
+    height: 30px;
+    padding: 0.1rem 0.2rem;
+  }
+
+  .toolbar-btn .toolbar-btn-icon svg {
+    width: 13px;
+    height: 13px;
+  }
+
+  .toolbar-divider {
+    height: 24px;
+    margin: 0 0.1rem;
+  }
+
+  .color-picker-wrapper {
+    height: 28px;
+  }
+
+  .color-picker {
+    width: 20px;
+    height: 20px;
+  }
+
+  .brush-size-control {
+    height: 28px;
+    padding: 0.05rem 0.15rem;
+  }
+
+  .brush-slider {
+    width: 36px;
+  }
+
+  .brush-size-value {
+    font-size: 0.45rem;
+    min-width: 14px;
+  }
+}
+
+/* ---------- Medium Screens (Some Tablets) ---------- */
+@media (max-width: 768px) {
+  .toolbar-container {
+    padding: 0.25rem 0.3rem;
+    min-height: 36px;
+  }
+
+  .toolbar-btn {
+    min-width: 24px;
+    height: 28px;
+    padding: 0.05rem 0.15rem;
+  }
+
+  .toolbar-btn .toolbar-btn-icon svg {
+    width: 12px;
+    height: 12px;
+  }
+
+  .toolbar-divider {
+    height: 20px;
+    margin: 0 0.08rem;
+  }
+
+  .color-picker-wrapper {
+    height: 24px;
+    padding: 0.03rem 0.1rem 0.03rem 0.03rem;
+  }
+
+  .color-picker {
+    width: 18px;
+    height: 18px;
+  }
+
+  .brush-size-control {
+    height: 24px;
+    padding: 0.03rem 0.1rem;
+    gap: 0.1rem;
+  }
+
+  .brush-size-preview {
+    width: 14px;
+    height: 14px;
+  }
+
+  .brush-slider {
+    width: 28px;
+  }
+
+  .brush-size-value {
+    font-size: 0.4rem;
+    min-width: 12px;
+  }
+}
+
+/* ---------- Very Small Screens (Phones) ---------- */
+@media (max-width: 480px) {
+  .toolbar-container {
+    padding: 0.2rem 0.2rem;
+    min-height: 32px;
+  }
+
+  .toolbar {
+    gap: 0.05rem;
+  }
+
+  .toolbar-section {
+    padding: 0 0.05rem;
+  }
+
+  .toolbar-btn {
+    min-width: 20px;
+    height: 24px;
+    padding: 0.05rem 0.1rem;
+  }
+
+  .toolbar-btn .toolbar-btn-icon svg {
+    width: 10px;
+    height: 10px;
+  }
+
+  .toolbar-divider {
+    height: 16px;
+    margin: 0 0.05rem;
+  }
+
+  .color-picker-wrapper {
+    height: 20px;
+    padding: 0.03rem 0.05rem 0.03rem 0.03rem;
+    gap: 0.05rem;
+  }
+
+  .color-picker {
+    width: 14px;
+    height: 14px;
+  }
+
+  .brush-size-control {
+    height: 20px;
+    padding: 0.03rem 0.08rem;
+    gap: 0.05rem;
+  }
+
+  .brush-size-preview {
+    width: 10px;
+    height: 10px;
+  }
+
+  .brush-slider {
+    width: 20px;
+  }
+
+  .brush-size-value {
+    font-size: 0.35rem;
+    min-width: 10px;
+  }
+}
+
+/* ---------- Extremely Narrow (Split View) ---------- */
+@media (max-width: 400px) {
+  .toolbar-container {
+    padding: 0.15rem 0.15rem;
+    min-height: 28px;
+  }
+
+  .toolbar-btn {
+    min-width: 18px;
+    height: 20px;
+    padding: 0.03rem 0.05rem;
+  }
+
+  .toolbar-btn .toolbar-btn-icon svg {
+    width: 8px;
+    height: 8px;
+  }
+
+  .toolbar-divider {
+    height: 14px;
+    margin: 0 0.03rem;
+  }
+
+  .color-picker-wrapper {
+    height: 18px;
+    padding: 0.02rem 0.03rem 0.02rem 0.02rem;
+  }
+
+  .color-picker {
+    width: 12px;
+    height: 12px;
+  }
+
+  .brush-size-control {
+    height: 18px;
+    padding: 0.02rem 0.05rem;
+  }
+
+  .brush-size-preview {
+    width: 8px;
+    height: 8px;
+  }
+
+  .brush-slider {
+    width: 16px;
+  }
+
+  .brush-size-value {
+    font-size: 0.3rem;
+    min-width: 8px;
+  }
+}
+
+/* ---------- Hover/Tooltip for Small Screens ---------- */
+@media (max-width: 480px) {
+  .toolbar-btn {
+    position: relative;
+  }
+
+  .toolbar-btn:hover::after {
+    content: attr(title);
+    position: absolute;
+    bottom: calc(100% + 4px);
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(0, 0, 0, 0.8);
+    color: white;
+    padding: 0.15rem 0.4rem;
+    border-radius: 4px;
+    font-size: 0.5rem;
+    white-space: nowrap;
+    pointer-events: none;
+    z-index: 100;
+  }
+}
+
+/* ---------- Scrollbar Styling ---------- */
+.toolbar-container::-webkit-scrollbar {
+  height: 2px;
+}
+
+.toolbar-container::-webkit-scrollbar-track {
+  background: var(--toolbar-border);
+}
+
+.toolbar-container::-webkit-scrollbar-thumb {
+  background: var(--toolbar-active-border);
+  border-radius: 2px;
+}
