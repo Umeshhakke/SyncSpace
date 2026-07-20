@@ -1,15 +1,33 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useLocation, useNavigate } from 'react-router-dom';
 import { useSocket } from '../context/SocketContext';
-import Whiteboard from '../components/whiteboard/Whiteboard'; // 👈 YOUR existing whiteboard
+import Whiteboard from '../components/whiteboard/Whiteboard';  // ✅ Default import
 
-// Temporary Code Editor placeholder (Member 4 will replace this)
-const CodeEditorPlaceholder = ({ roomId, username }) => (
-  <div style={styles.editorPlaceholder}>
-    <h3 style={{ color: '#ecf0f1' }}>📝 Code Editor</h3>
-    <p style={{ color: '#95a5a6' }}>Room: <strong style={{ color: '#ecf0f1' }}>{roomId}</strong></p>
-    <p style={{ color: '#95a5a6' }}>User: <strong style={{ color: '#ecf0f1' }}>{username}</strong></p>
-    <div style={styles.placeholderBox}>⬅️ Member 4 builds Code Editor here</div>
+// Code Editor Placeholder (Member 4 will replace this)
+const CodeEditorPlaceholder = ({ roomId, username, isDarkMode }) => (
+  <div style={{
+    ...styles.editorPlaceholder,
+    background: isDarkMode ? '#1a1a2e' : '#f8f9fa',
+    color: isDarkMode ? '#e0e0e0' : '#333',
+  }}>
+    <div style={styles.editorContent}>
+      <span style={{ fontSize: '3rem', opacity: 0.3 }}>📝</span>
+      <h3 style={{ color: isDarkMode ? '#e0e0e0' : '#333' }}>Code Editor</h3>
+      <p style={{ color: isDarkMode ? '#888' : '#666' }}>
+        Room: <strong style={{ color: isDarkMode ? '#e0e0e0' : '#333' }}>{roomId}</strong>
+      </p>
+      <p style={{ color: isDarkMode ? '#888' : '#666' }}>
+        User: <strong style={{ color: isDarkMode ? '#e0e0e0' : '#333' }}>{username}</strong>
+      </p>
+      <div style={{
+        ...styles.placeholderBox,
+        background: isDarkMode ? '#2c2c4a' : '#e9ecef',
+        borderColor: isDarkMode ? '#444' : '#ced4da',
+        color: isDarkMode ? '#888' : '#999',
+      }}>
+        ⬅️ Member 4 builds Code Editor here
+      </div>
+    </div>
   </div>
 );
 
@@ -19,9 +37,24 @@ const EditorPage = () => {
   const navigate = useNavigate();
   const { socket } = useSocket();
   const [participants, setParticipants] = useState([]);
+  const [isDarkMode, setIsDarkMode] = useState(() => {
+    // Check localStorage for saved preference
+    const saved = localStorage.getItem('theme');
+    return saved ? saved === 'dark' : false;
+  });
+  
   const username = location.state?.username || 'Guest';
 
-  // --- Participant tracking (uses your existing socket events) ---
+  // Toggle theme
+  const toggleTheme = () => {
+    setIsDarkMode((prev) => {
+      const newTheme = !prev;
+      localStorage.setItem('theme', newTheme ? 'dark' : 'light');
+      return newTheme;
+    });
+  };
+
+  // --- Participant tracking ---
   useEffect(() => {
     if (!socket) return;
     if (location.state?.participants) setParticipants(location.state.participants);
@@ -55,28 +88,130 @@ const EditorPage = () => {
     }
   };
 
+  // Theme-aware styles
+  const themeStyles = {
+    container: {
+      display: 'flex',
+      flexDirection: 'column',
+      height: '100vh',
+      overflow: 'hidden',
+      background: isDarkMode ? '#0d1117' : '#f0f2f5',
+      transition: 'background 0.3s ease',
+    },
+    header: {
+      display: 'flex',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      padding: '0.6rem 2rem',
+      background: isDarkMode ? '#161b22' : '#ffffff',
+      borderBottom: `2px solid ${isDarkMode ? '#30363d' : '#e9ecef'}`,
+      flexShrink: 0,
+      flexWrap: 'wrap',
+      gap: '0.5rem',
+      transition: 'all 0.3s ease',
+    },
+    headerTitle: {
+      margin: 0,
+      fontSize: '1.1rem',
+      color: isDarkMode ? '#f0f6fc' : '#2c3e50',
+      fontWeight: 600,
+    },
+    badge: {
+      background: isDarkMode ? '#30363d' : '#667eea',
+      color: isDarkMode ? '#f0f6fc' : 'white',
+      padding: '0.2rem 0.8rem',
+      borderRadius: '20px',
+      fontSize: '0.8rem',
+      fontWeight: 600,
+    },
+    count: {
+      fontSize: '0.85rem',
+      color: isDarkMode ? '#8b949e' : '#2c3e50',
+    },
+    leaveBtn: {
+      background: isDarkMode ? '#da3633' : '#e74c3c',
+      color: 'white',
+      border: 'none',
+      padding: '0.35rem 1.2rem',
+      borderRadius: '6px',
+      cursor: 'pointer',
+      fontWeight: 600,
+      fontSize: '0.85rem',
+      transition: 'opacity 0.2s',
+      ':hover': { opacity: 0.85 },
+    },
+    themeBtn: {
+      background: isDarkMode ? '#30363d' : '#e9ecef',
+      color: isDarkMode ? '#f0f6fc' : '#2c3e50',
+      border: 'none',
+      padding: '0.35rem 0.8rem',
+      borderRadius: '6px',
+      cursor: 'pointer',
+      fontSize: '1rem',
+      transition: 'all 0.2s',
+    },
+    split: {
+      display: 'flex',
+      flex: 1,
+      overflow: 'hidden',
+    },
+    left: {
+      flex: 1,
+      background: isDarkMode ? '#0d1117' : '#ffffff',
+      borderRight: `2px solid ${isDarkMode ? '#30363d' : '#e9ecef'}`,
+      overflow: 'hidden',
+      transition: 'all 0.3s ease',
+    },
+    right: {
+      flex: 1,
+      background: isDarkMode ? '#0d1117' : '#f8f9fa',
+      overflow: 'hidden',
+      transition: 'all 0.3s ease',
+    },
+  };
+
   return (
-    <div style={styles.container}>
+    <div style={themeStyles.container}>
       {/* Header */}
-      <header style={styles.header}>
+      <header style={themeStyles.header}>
         <div style={styles.headerLeft}>
-          <h2 style={styles.headerTitle}>🎨 Room: {roomId}</h2>
-          <span style={styles.badge}>👤 {username}</span>
+          <h2 style={themeStyles.headerTitle}>
+            <span style={{ marginRight: '0.5rem' }}>🎨</span>
+            {roomId}
+          </h2>
+          <span style={themeStyles.badge}>👤 {username}</span>
         </div>
         <div style={styles.headerRight}>
-          <span style={styles.count}>👥 {participants.length} online</span>
-          <button onClick={handleLeave} style={styles.leaveBtn}>🚪 Leave</button>
+          <span style={themeStyles.count}>👥 {participants.length} online</span>
+          <button
+            onClick={toggleTheme}
+            style={themeStyles.themeBtn}
+            title="Toggle Theme"
+          >
+            {isDarkMode ? '☀️' : '🌙'}
+          </button>
+          <button
+            onClick={handleLeave}
+            style={themeStyles.leaveBtn}
+            onMouseEnter={(e) => e.target.style.opacity = '0.85'}
+            onMouseLeave={(e) => e.target.style.opacity = '1'}
+          >
+            🚪 Leave
+          </button>
         </div>
       </header>
 
       {/* Split Screen: Whiteboard (Left) | Code Editor (Right) */}
-      <div style={styles.split}>
-        <div style={styles.left}>
-          {/* 👇 YOUR EXISTING WHITEBOARD COMPONENT - now gets roomId & username */}
-          <Whiteboard roomId={roomId} username={username} />
+      <div style={themeStyles.split}>
+        <div style={themeStyles.left}>
+          <Whiteboard roomId={roomId} username={username} isDarkMode={isDarkMode} />
         </div>
-        <div style={styles.right}>
-          <CodeEditorPlaceholder roomId={roomId} username={username} />
+        <div style={themeStyles.right}>
+          <CodeEditorPlaceholder
+            roomId={roomId}
+            username={username}
+            isDarkMode={isDarkMode}
+          />
         </div>
       </div>
     </div>
@@ -84,29 +219,39 @@ const EditorPage = () => {
 };
 
 const styles = {
-  container: { display: 'flex', flexDirection: 'column', height: '100vh', overflow: 'hidden', background: '#f0f2f5' },
-  header: {
+  headerLeft: {
     display: 'flex',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    padding: '0.75rem 2rem',
-    background: 'white',
-    borderBottom: '2px solid #e0e0e0',
-    flexShrink: 0,
+    gap: '1rem',
     flexWrap: 'wrap',
-    gap: '0.5rem',
   },
-  headerLeft: { display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' },
-  headerTitle: { margin: 0, fontSize: '1.2rem', color: '#2c3e50' },
-  badge: { background: '#667eea', color: 'white', padding: '0.2rem 0.8rem', borderRadius: '20px', fontSize: '0.85rem', fontWeight: '600' },
-  headerRight: { display: 'flex', alignItems: 'center', gap: '1rem' },
-  count: { fontSize: '0.9rem', color: '#2c3e50' },
-  leaveBtn: { background: '#e74c3c', color: 'white', border: 'none', padding: '0.4rem 1.2rem', borderRadius: '6px', cursor: 'pointer', fontWeight: '600' },
-  split: { display: 'flex', flex: 1, overflow: 'hidden' },
-  left: { flex: 1, background: 'white', borderRight: '2px solid #e0e0e0', overflow: 'hidden' },
-  right: { flex: 1, background: '#1e1e2f', overflow: 'hidden' },
-  editorPlaceholder: { width: '100%', height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', background: '#1e1e2f', padding: '1rem' },
-  placeholderBox: { marginTop: '1rem', padding: '2rem', background: '#2c3e50', borderRadius: '8px', border: '2px dashed #7f8c8d', fontSize: '1.2rem', fontWeight: 'bold', color: '#bdc3c7' },
+  headerRight: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '0.75rem',
+    flexWrap: 'wrap',
+  },
+  editorPlaceholder: {
+    width: '100%',
+    height: '100%',
+    display: 'flex',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: '1rem',
+    transition: 'all 0.3s ease',
+  },
+  editorContent: {
+    textAlign: 'center',
+  },
+  placeholderBox: {
+    marginTop: '1rem',
+    padding: '2rem',
+    borderRadius: '8px',
+    border: '2px dashed',
+    fontSize: '1rem',
+    fontWeight: 'bold',
+    transition: 'all 0.3s ease',
+  },
 };
 
 export default EditorPage;

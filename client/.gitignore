@@ -1,11 +1,24 @@
-# Client specific ignores
-node_modules/
-dist/
-.vite/
+# Logs
+logs
+*.log
 npm-debug.log*
-package-lock.json
-yarn.lock
-*.db
-*.sqlite
-coverage/
-.nyc_output/
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+node_modules
+dist
+dist-ssr
+*.local
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
