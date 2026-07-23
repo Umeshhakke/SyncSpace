@@ -8,7 +8,10 @@ const WebSocket = require("ws"); // 👈 NEW: For Yjs WebSocket
 const { setupWSConnection } = require("y-websocket/bin/utils"); // 👈 NEW: Yjs utility
 const { initSocket } = require("./socket/socketHandler");
 const { getDocument } = require("./yjs/documentManager");
-
+const {
+  startPersistenceScheduler,
+  persistAllDocuments,
+} = require("./yjs/persistence");
 dotenv.config();
 
 // ============ Create Express app ============
@@ -68,10 +71,19 @@ httpServer.listen(PORT, () => {
   console.log(`🔌 Socket.io: ws://localhost:${PORT}/socket.io/`);
   console.log(`🔄 Yjs WebSocket: ws://localhost:${PORT}/:roomId`);
   console.log(`🔐 Auth token: demo123`);
+  startPersistenceScheduler();
 });
 
 // Handle unhandled rejections
-process.on("unhandledRejection", (err) => {
-  console.error("❌ Unhandled Rejection:", err.message);
-  httpServer.close(() => process.exit(1));
+process.on("SIGINT", async () => {
+  console.log("\n💾 Saving all Yjs documents before shutdown...");
+
+  try {
+    await persistAllDocuments();
+    console.log("✅ All documents saved.");
+  } catch (err) {
+    console.error("❌ Failed to save documents:", err);
+  }
+
+  process.exit(0);
 });

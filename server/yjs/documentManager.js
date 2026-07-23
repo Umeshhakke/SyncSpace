@@ -1,44 +1,30 @@
-// server/yjs/documentManager.js - Manages Yjs documents per room
+const Y = require("yjs");
 
-const Y = require('yjs');
-
-// docMap: Maps roomId -> Yjs Document instance
+// Stores one Y.Doc per room
 const docMap = new Map();
 
-// Get or create a Yjs document for a room
-const getDocument = (roomId) => {
-  if (!docMap.has(roomId)) {
-    const doc = new Y.Doc();
-    docMap.set(roomId, doc);
-    console.log(`📄 Yjs document created for room: ${roomId}`);
-  }
-  return docMap.get(roomId);
-};
+/**
+ * Returns an existing Y.Doc or creates a new one.
+ */
+function getDocument(roomId) {
+    if (!docMap.has(roomId)) {
+        docMap.set(roomId, new Y.Doc());
+        console.log(`Created Yjs document for room: ${roomId}`);
+    }
 
-// Delete a Yjs document (when room becomes empty)
-const deleteDocument = (roomId) => {
-  if (docMap.has(roomId)) {
-    const doc = docMap.get(roomId);
-    doc.destroy(); // Clean up the document
-    docMap.delete(roomId);
-    console.log(`🗑️ Yjs document deleted for room: ${roomId}`);
-  }
-};
+    return docMap.get(roomId);
+}
 
-// Check if a document exists for a room
-const documentExists = (roomId) => {
-  return docMap.has(roomId);
-};
-
-// Get all active room IDs (for debugging)
-const getAllRoomIds = () => {
-  return Array.from(docMap.keys());
-};
+/**
+ * Returns all active documents.
+ * Used by the persistence scheduler.
+ */
+function getAllDocs() {
+    return docMap;
+}
 
 module.exports = {
-  getDocument,
-  deleteDocument,
-  documentExists,
-  getAllRoomIds,
-  docMap,
+    getDocument,
+    getAllDocs,
+    docMap,
 };
