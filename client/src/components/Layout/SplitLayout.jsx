@@ -1,6 +1,7 @@
 import React from "react";
 import Header from "../Header/Header";
 import Whiteboard from "../Whiteboard/Whiteboard";
+import CodeEditor from "../CodeEditor/CodeEditor";
 import ParticipantSidebar from "../Participants/ParticipantSidebar";
 import "../../styles/layout.css";
 
@@ -17,16 +18,9 @@ const SplitLayout = () => {
 
         {/* Right Panel - Code Editor & Participants */}
         <div className="right-panel">
-          {/* Code Editor Placeholder */}
-          <div className="code-editor-placeholder">
-            <div className="panel-content">
-              <div className="panel-icon">💻</div>
-              <h2>Code Editor</h2>
-              <p>Real-time collaborative coding</p>
-              <div className="panel-placeholder">
-                <span>Ready to code</span>
-              </div>
-            </div>
+          {/* Code Editor */}
+          <div className="code-editor-panel">
+            <CodeEditor />
           </div>
 
           {/* Participant Sidebar */}

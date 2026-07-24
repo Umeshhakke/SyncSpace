@@ -47,17 +47,15 @@
 }
 
 /* ========================================
-   Code Editor Placeholder
+   Code Editor Panel
    ======================================== */
-.code-editor-placeholder {
+.code-editor-panel {
   flex: 3;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  background: #ffffff;
-  padding: 20px;
-  border-bottom: 2px solid #e2e8f0;
+  height: 100%;
+  overflow: hidden;
+  background: #1e1e2e;
   min-height: 200px;
+  position: relative;
 }
 
 /* ========================================
@@ -153,50 +151,19 @@
     flex-direction: column;
   }
 
-  .code-editor-placeholder {
+  .code-editor-panel {
     flex: 1;
     min-height: 150px;
-    padding: 12px;
-  }
-
-  .panel-content {
-    padding: 20px;
-  }
-
-  .panel-icon {
-    font-size: 48px;
-  }
-
-  .panel-content h2 {
-    font-size: 24px;
   }
 }
 
 /* Mobile: Smaller screens */
 @media (max-width: 480px) {
-  .panel-content h2 {
-    font-size: 20px;
-  }
-
-  .panel-content p {
-    font-size: 14px;
-  }
-
-  .panel-icon {
-    font-size: 40px;
-  }
-
-  .panel-placeholder {
-    font-size: 12px;
-    padding: 12px 16px;
-  }
-
   .left-panel {
     padding: 6px;
   }
 
-  .code-editor-placeholder {
+  .code-editor-panel {
     min-height: 100px;
-    padding: 8px;
   }
 }

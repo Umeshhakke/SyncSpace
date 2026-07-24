@@ -1,0 +1,208 @@
+/* ========================================
+   Code Editor Wrapper
+   ======================================== */
+.code-editor-wrapper {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  background: #1e1e2e;
+}
+
+/* ========================================
+   Editor Toolbar
+   ======================================== */
+.editor-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 16px;
+  background: #181825;
+  border-bottom: 1px solid #313244;
+  flex-shrink: 0;
+  min-height: 44px;
+}
+
+.editor-toolbar-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.editor-icon {
+  font-size: 18px;
+}
+
+.editor-title {
+  color: #cdd6f4;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.editor-toolbar-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.language-selector {
+  background: #313244;
+  color: #cdd6f4;
+  border: 1px solid #45475a;
+  border-radius: 6px;
+  padding: 4px 12px;
+  font-size: 13px;
+  font-family: inherit;
+  cursor: pointer;
+  outline: none;
+  transition: all 0.2s ease;
+}
+
+.language-selector:hover {
+  background: #45475a;
+  border-color: #585b70;
+}
+
+.language-selector:focus {
+  border-color: #89b4fa;
+  box-shadow: 0 0 0 2px rgba(137, 180, 250, 0.2);
+}
+
+.language-selector option {
+  background: #1e1e2e;
+  color: #cdd6f4;
+}
+
+.editor-status {
+  font-size: 12px;
+  padding: 4px 10px;
+  border-radius: 12px;
+  background: #313244;
+  color: #a6adc8;
+  border: 1px solid #45475a;
+}
+
+/* ========================================
+   Editor Container
+   ======================================== */
+.code-editor-container {
+  flex: 1;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: #1e1e2e;
+}
+
+/* Override Monaco's default styles */
+.code-editor-container .monaco-editor {
+  background: #1e1e2e !important;
+}
+
+/* ========================================
+   Responsive Design
+   ======================================== */
+
+/* Tablet */
+@media (max-width: 768px) {
+  .editor-toolbar {
+    padding: 6px 12px;
+    min-height: 38px;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  .editor-title {
+    font-size: 13px;
+  }
+
+  .language-selector {
+    font-size: 12px;
+    padding: 3px 10px;
+  }
+
+  .editor-status {
+    font-size: 11px;
+    padding: 2px 8px;
+  }
+}
+
+/* Mobile */
+@media (max-width: 480px) {
+  .editor-toolbar {
+    padding: 4px 8px;
+    min-height: 34px;
+  }
+
+  .editor-toolbar-left {
+    gap: 6px;
+  }
+
+  .editor-icon {
+    font-size: 14px;
+  }
+
+  .editor-title {
+    font-size: 12px;
+  }
+
+  .editor-toolbar-right {
+    gap: 6px;
+  }
+
+  .language-selector {
+    font-size: 11px;
+    padding: 2px 8px;
+  }
+
+  .editor-status {
+    font-size: 10px;
+    padding: 2px 6px;
+  }
+}
+
+/* ========================================
+   Dark Mode (already dark)
+   ======================================== */
+@media (prefers-color-scheme: light) {
+  .code-editor-wrapper {
+    background: #ffffff;
+  }
+
+  .editor-toolbar {
+    background: #f1f3f4;
+    border-bottom-color: #dadce0;
+  }
+
+  .editor-title {
+    color: #202124;
+  }
+
+  .language-selector {
+    background: #f8f9fa;
+    color: #202124;
+    border-color: #dadce0;
+  }
+
+  .language-selector:hover {
+    background: #e8eaed;
+  }
+
+  .language-selector option {
+    background: #ffffff;
+    color: #202124;
+  }
+
+  .editor-status {
+    background: #e8eaed;
+    color: #5f6368;
+    border-color: #dadce0;
+  }
+
+  .code-editor-container {
+    background: #ffffff;
+  }
+
+  .code-editor-container .monaco-editor {
+    background: #ffffff !important;
+  }
+}
