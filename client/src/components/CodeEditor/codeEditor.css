@@ -41,6 +41,7 @@
   font-weight: 500;
 }
 
+/* Status Badges */
 .editor-ready-badge {
   font-size: 11px;
   color: #a6e3a1;
@@ -50,12 +51,33 @@
   border: 1px solid rgba(166, 227, 161, 0.2);
 }
 
+.editor-yjs-badge {
+  font-size: 11px;
+  color: #89b4fa;
+  background: rgba(137, 180, 250, 0.1);
+  padding: 2px 10px;
+  border-radius: 12px;
+  border: 1px solid rgba(137, 180, 250, 0.2);
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.6;
+  }
+}
+
 .editor-toolbar-right {
   display: flex;
   align-items: center;
   gap: 10px;
 }
 
+/* Language Selector */
 .language-selector {
   background: #313244;
   color: #cdd6f4;
@@ -84,6 +106,7 @@
   color: #cdd6f4;
 }
 
+/* Format Button */
 .format-btn {
   background: #313244;
   color: #cdd6f4;
@@ -106,6 +129,17 @@
   transform: scale(0.95);
 }
 
+/* Debug Button */
+.format-btn.debug-btn {
+  background: #2d4a6b;
+  border-color: #3b6a8b;
+}
+
+.format-btn.debug-btn:hover {
+  background: #3b6a8b;
+}
+
+/* Editor Status Indicator */
 .editor-status {
   font-size: 16px;
   line-height: 1;
@@ -123,13 +157,40 @@
   border-radius: 0 0 8px 8px;
 }
 
-/* Monaco overrides */
+/* Monaco Editor Overrides */
 .code-editor-container .monaco-editor {
   background: #1e1e2e !important;
 }
 
 .code-editor-container .monaco-editor .view-lines {
   padding-top: 8px;
+}
+
+.code-editor-container .monaco-editor .margin {
+  background: #1e1e2e !important;
+}
+
+.code-editor-container .monaco-editor .monaco-scrollable-element {
+  background: #1e1e2e !important;
+}
+
+/* ========================================
+   Scrollbar Styling for Editor
+   ======================================== */
+.code-editor-container .monaco-editor .scrollbar {
+  background: transparent !important;
+}
+
+.code-editor-container .monaco-editor .slider {
+  background: #45475a !important;
+}
+
+.code-editor-container .monaco-editor .slider:hover {
+  background: #585b70 !important;
+}
+
+.code-editor-container .monaco-editor .slider.active {
+  background: #6c7086 !important;
 }
 
 /* ========================================
@@ -157,9 +218,18 @@
     padding: 3px 10px;
   }
 
-  .editor-ready-badge {
+  .editor-ready-badge,
+  .editor-yjs-badge {
     font-size: 10px;
     padding: 1px 8px;
+  }
+
+  .editor-icon {
+    font-size: 16px;
+  }
+
+  .editor-status {
+    font-size: 14px;
   }
 }
 
@@ -201,9 +271,50 @@
     font-size: 14px;
   }
 
-  .editor-ready-badge {
+  .editor-ready-badge,
+  .editor-yjs-badge {
     font-size: 9px;
     padding: 1px 6px;
+    display: none; /* Hide badges on very small screens */
+  }
+}
+
+/* Very Small Screens */
+@media (max-width: 360px) {
+  .editor-toolbar {
+    padding: 2px 4px;
+    min-height: 30px;
+    gap: 2px;
+  }
+
+  .editor-title {
+    font-size: 10px;
+  }
+
+  .language-selector {
+    font-size: 10px;
+    padding: 1px 6px;
+  }
+
+  .format-btn {
+    font-size: 10px;
+    padding: 1px 6px;
+  }
+
+  .editor-icon {
+    font-size: 12px;
+  }
+
+  .editor-status {
+    font-size: 12px;
+  }
+
+  .editor-toolbar-left {
+    gap: 4px;
+  }
+
+  .editor-toolbar-right {
+    gap: 4px;
   }
 }
 
@@ -228,6 +339,12 @@
     color: #1e7e34;
     background: rgba(30, 126, 52, 0.1);
     border-color: rgba(30, 126, 52, 0.2);
+  }
+
+  .editor-yjs-badge {
+    color: #1a73e8;
+    background: rgba(26, 115, 232, 0.1);
+    border-color: rgba(26, 115, 232, 0.2);
   }
 
   .language-selector {
@@ -255,6 +372,16 @@
     background: #e8eaed;
   }
 
+  .format-btn.debug-btn {
+    background: #e8f0fe;
+    border-color: #b6d4fe;
+    color: #1a73e8;
+  }
+
+  .format-btn.debug-btn:hover {
+    background: #d2e3fc;
+  }
+
   .code-editor-container {
     background: #ffffff;
   }
@@ -262,4 +389,130 @@
   .code-editor-container .monaco-editor {
     background: #ffffff !important;
   }
+
+  .code-editor-container .monaco-editor .margin {
+    background: #ffffff !important;
+  }
+
+  .code-editor-container .monaco-editor .monaco-scrollable-element {
+    background: #ffffff !important;
+  }
+
+  .code-editor-container .monaco-editor .scrollbar {
+    background: transparent !important;
+  }
+
+  .code-editor-container .monaco-editor .slider {
+    background: #dadce0 !important;
+  }
+
+  .code-editor-container .monaco-editor .slider:hover {
+    background: #bdc1c6 !important;
+  }
+
+  .code-editor-container .monaco-editor .slider.active {
+    background: #9aa0a6 !important;
+  }
+}
+
+/* ========================================
+   High Contrast / Accessibility
+   ======================================== */
+@media (prefers-contrast: high) {
+  .editor-toolbar {
+    border-bottom-width: 2px;
+    border-bottom-color: #ffffff;
+  }
+
+  .language-selector {
+    border-width: 2px;
+  }
+
+  .format-btn {
+    border-width: 2px;
+  }
+
+  .editor-ready-badge,
+  .editor-yjs-badge {
+    border-width: 2px;
+  }
+}
+
+/* ========================================
+   Print Styles
+   ======================================== */
+@media print {
+  .editor-toolbar {
+    display: none;
+  }
+
+  .code-editor-wrapper {
+    height: 100% !important;
+  }
+
+  .code-editor-container {
+    border-radius: 0 !important;
+  }
+}
+
+/* ========================================
+   Reduced Motion
+   ======================================== */
+@media (prefers-reduced-motion: reduce) {
+  .editor-yjs-badge {
+    animation: none;
+  }
+
+  .format-btn {
+    transition: none;
+  }
+
+  .language-selector {
+    transition: none;
+  }
+}
+
+/* ========================================
+   Focus States for Accessibility
+   ======================================== */
+.language-selector:focus-visible {
+  outline: 2px solid #89b4fa;
+  outline-offset: 2px;
+}
+
+.format-btn:focus-visible {
+  outline: 2px solid #89b4fa;
+  outline-offset: 2px;
+}
+
+/* ========================================
+   Loading State
+   ======================================== */
+.code-editor-container.loading {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: #1e1e2e;
+  color: #cdd6f4;
+  font-size: 14px;
+}
+
+.code-editor-container.loading::after {
+  content: " Loading Editor...";
+}
+
+/* ========================================
+   Error State
+   ======================================== */
+.code-editor-container.error {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: #1e1e2e;
+  color: #f38ba8;
+  font-size: 14px;
+}
+
+.code-editor-container.error::after {
+  content: " Failed to load editor";
 }

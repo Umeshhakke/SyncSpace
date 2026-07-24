@@ -1,39 +1,34 @@
 import React, { useRef, useState, useEffect } from "react";
 import Editor from "@monaco-editor/react";
+import useYjsEditor from "../../hooks/useYjsEditor";
 import "./codeEditor.css";
 
 /**
  * ============================================
- * CodeEditor Component - Professional Setup
+ * CodeEditor Component with Yjs Integration
  * ============================================
- * Fully configured Monaco Editor with:
- * - Dark theme (vs-dark)
- * - Professional settings
- * - Language support
- * - Editor ref for Yjs integration
+ * Monaco Editor with Yjs shared document.
+ * Currently independent - binding will be added Day 4.
  */
 const CodeEditor = () => {
   const editorRef = useRef(null);
   const [language, setLanguage] = useState("javascript");
   const [isEditorReady, setIsEditorReady] = useState(false);
-  const [code, setCode] = useState(`function hello() {
-  console.log("Welcome to SyncSpace!");
-}
+  const [editorContent, setEditorContent] = useState("");
 
-// Start coding here...
-// Try typing: const sum = (a, b) => a + b;
-`);
+  // Initialize Yjs document and shared text
+  const { ydoc, yText, isInitialized, version, getContent } = useYjsEditor();
 
   /**
    * Called when the editor is mounted
-   * Stores editor instance and applies settings
    */
   const handleEditorDidMount = (editor, monaco) => {
     editorRef.current = editor;
     setIsEditorReady(true);
     console.log("✅ Monaco Editor mounted");
+    console.log("📝 Editor stored in ref");
 
-    // Apply professional settings
+    // Apply editor settings
     editor.updateOptions({
       fontSize: 15,
       fontFamily: 'Consolas, "Courier New", monospace',
@@ -48,20 +43,13 @@ const CodeEditor = () => {
       tabSize: 4,
       insertSpaces: true,
       lineNumbers: "on",
-      renderWhitespace: "selection",
       bracketPairColorization: { enabled: true },
       matchBrackets: "always",
-      suggest: {
-        showKeywords: true,
-        showSnippets: true,
-      },
       folding: true,
-      foldingStrategy: "indentation",
       smoothScrolling: true,
-      cursorSmoothCaretAnimation: true,
     });
 
-    // Define custom theme
+    // Define theme
     monaco.editor.defineTheme("syncspace-dark", {
       base: "vs-dark",
       inherit: true,
@@ -72,26 +60,27 @@ const CodeEditor = () => {
         { token: "number", foreground: "bd93f9" },
         { token: "function", foreground: "50fa7b" },
         { token: "variable", foreground: "f8f8f2" },
-        { token: "operator", foreground: "ff79c6" },
       ],
       colors: {
         "editor.background": "#1e1e2e",
         "editor.foreground": "#cdd6f4",
         "editor.lineHighlightBackground": "#313244",
         "editor.selectionBackground": "#45475a",
-        "editor.inactiveSelectionBackground": "#313244",
-        "editorIndentGuide.background": "#313244",
-        "editorIndentGuide.activeBackground": "#45475a",
-        "editor.lineNumber.foreground": "#6c7086",
-        "editor.lineNumber.activeForeground": "#cdd6f4",
       },
     });
 
-    // Apply theme
     monaco.editor.setTheme("syncspace-dark");
-
-    // Focus the editor
     editor.focus();
+
+    // Log Yjs state
+    console.log("📊 Yjs State in Editor:");
+    console.log("  - Y.Doc ready:", !!ydoc);
+    console.log("  - Y.Text ready:", !!yText);
+    console.log("  - Y.Text content length:", yText.length);
+    console.log(
+      "  - Y.Text content preview:",
+      yText.toString().substring(0, 50) + "...",
+    );
   };
 
   /**
@@ -104,10 +93,12 @@ const CodeEditor = () => {
   };
 
   /**
-   * Handle code change
+   * Handle code change - currently local only
+   * Will be replaced with Yjs binding in Day 4
    */
   const handleCodeChange = (value) => {
-    setCode(value || "");
+    setEditorContent(value || "");
+    // Note: In Day 4, this will be handled by Yjs
   };
 
   /**
@@ -121,9 +112,22 @@ const CodeEditor = () => {
   };
 
   /**
-   * Get editor instance for external use
+   * Log Yjs state on demand
    */
-  const getEditor = () => editorRef.current;
+  const logYjsState = () => {
+    console.log("📊 Yjs Document State:");
+    console.log("  - Initialized:", isInitialized);
+    console.log("  - Version:", version);
+    console.log("  - Content Length:", yText.length);
+    console.log("  - Full Content:", yText.toString());
+  };
+
+  // Log when Yjs state changes
+  useEffect(() => {
+    if (isInitialized) {
+      console.log("🔄 Yjs document updated, version:", version);
+    }
+  }, [isInitialized, version]);
 
   // Languages supported
   const languages = [
@@ -151,6 +155,7 @@ const CodeEditor = () => {
           <span className="editor-icon">📝</span>
           <span className="editor-title">Code Editor</span>
           {isEditorReady && <span className="editor-ready-badge">● Ready</span>}
+          {isInitialized && <span className="editor-yjs-badge">🔄 Synced</span>}
         </div>
         <div className="editor-toolbar-right">
           <select
@@ -172,6 +177,13 @@ const CodeEditor = () => {
           >
             ✨ Format
           </button>
+          <button
+            className="format-btn"
+            onClick={logYjsState}
+            title="Log Yjs State"
+          >
+            📊 Debug
+          </button>
           <span className="editor-status">{isEditorReady ? "🟢" : "🟡"}</span>
         </div>
       </div>
@@ -182,7 +194,7 @@ const CodeEditor = () => {
           height="100%"
           width="100%"
           language={language}
-          value={code}
+          value={editorContent}
           onChange={handleCodeChange}
           onMount={handleEditorDidMount}
           theme="syncspace-dark"
@@ -200,17 +212,10 @@ const CodeEditor = () => {
             tabSize: 4,
             insertSpaces: true,
             lineNumbers: "on",
-            renderWhitespace: "selection",
             bracketPairColorization: { enabled: true },
             matchBrackets: "always",
             folding: true,
-            foldingStrategy: "indentation",
             smoothScrolling: true,
-            cursorSmoothCaretAnimation: true,
-            suggest: {
-              showKeywords: true,
-              showSnippets: true,
-            },
           }}
         />
       </div>
