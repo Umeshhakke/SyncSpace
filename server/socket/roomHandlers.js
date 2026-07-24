@@ -1,7 +1,6 @@
-// server/socket/roomHandlers.js - Socket.io event handlers
-
+// server/socket/roomHandlers.js
 const documentManager = require('../yjs/documentManager');
-const { saveDocumentToDB } = require('../yjs/persistence'); // 👈 NEW
+const { saveDocumentToDB } = require('../yjs/db');   // 👈 import from db.js
 
 const registerRoomEvents = (io, socket, roomManager) => {
   // ---------- JOIN ROOM (async) ----------
@@ -23,14 +22,12 @@ const registerRoomEvents = (io, socket, roomManager) => {
     roomManager.addUser(roomId, socket.id, username);
 
     // ---------- Load or create Yjs document ----------
-    let doc = documentManager.getDocument(roomId); // check memory
+    let doc = documentManager.getDocument(roomId);      // check memory
     if (!doc) {
-      // Try to load from DB
       doc = await documentManager.loadDocumentFromDB(roomId);
     }
     if (!doc) {
-      // Create new empty document
-      doc = documentManager.getDocument(roomId);
+      doc = documentManager.getDocument(roomId);        // create new
     }
 
     socket.broadcast.to(roomId).emit("user-joined", {
@@ -95,7 +92,6 @@ const registerRoomEvents = (io, socket, roomManager) => {
 
       const remainingUsers = roomManager.getRoomSize(roomId);
       if (remainingUsers === 0) {
-        // Save final state before deletion
         const doc = documentManager.getDocument(roomId);
         if (doc) {
           await saveDocumentToDB(roomId, doc);

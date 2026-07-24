@@ -4,74 +4,88 @@ const express = require("express");
 const cors = require("cors");
 const http = require("http");
 const dotenv = require("dotenv");
-const WebSocket = require("ws"); // 👈 NEW: For Yjs WebSocket
-const { setupWSConnection } = require("y-websocket/bin/utils"); // 👈 NEW: Yjs utility
+const WebSocket = require("ws");
+const { setupWSConnection } = require("y-websocket/bin/utils");
 const { initSocket } = require("./socket/socketHandler");
-const { getDocument } = require("./yjs/documentManager");
+const { getDocument, restoreAllDocuments } = require("./yjs/documentManager"); // 👈 ADDED restoreAllDocuments
+const {
+  startPersistenceScheduler,
+  persistAllDocuments,
+} = require("./yjs/persistence");
+const connectDB = require("./config/db"); // 👈 ADDED (your DB connection)
 
 dotenv.config();
 
-// ============ Create Express app ============
-const app = express();
-app.use(cors());
-app.use(express.json());
+// ============ Connect to MongoDB first ============
+connectDB()
+  .then(async () => {
+    console.log("✅ MongoDB connected");
 
-// Health check route
-app.get("/health", (req, res) => {
-  res.json({ status: "Server is running" });
-});
+    // ============ Restore all Yjs documents from DB ============
+    await restoreAllDocuments();
 
-// ============ Create HTTP server ============
-const httpServer = http.createServer(app);
+    // ============ Create Express app ============
+    const app = express();
+    app.use(cors());
+    app.use(express.json());
 
-// ============ Initialize Socket.io ============
-initSocket(httpServer); // Your existing Socket.io setup (works on /socket.io/)
+    // Health check route
+    app.get("/health", (req, res) => {
+      res.json({ status: "Server is running" });
+    });
 
-// ============ 👇 NEW: ATTACH Yjs WebSocket ============
-const yjsWss = new WebSocket.Server({ noServer: true });
+    // ============ Create HTTP server ============
+    const httpServer = http.createServer(app);
 
-// Handle WebSocket upgrade requests
-httpServer.on("upgrade", (req, socket, head) => {
-  // ----- ROUTE 1: Socket.io requests (ignore - already handled) -----
-  // Socket.io automatically handles its own /socket.io/ path
-  if (req.url.startsWith("/socket.io/")) {
-    // Let Socket.io handle its own upgrade (we do nothing here)
-    return;
-  }
+    // ============ Initialize Socket.io ============
+    initSocket(httpServer);
 
-  // ----- ROUTE 2: Yjs requests (everything else) -----
-  // Example URLs: /Room-A, /Project-X, /alpha
-  console.log(`🔌 Yjs WebSocket upgrade for: ${req.url}`);
+    // ============ Attach Yjs WebSocket ============
+    const yjsWss = new WebSocket.Server({ noServer: true });
 
-  // Extract room ID from URL (remove leading slash and query params)
-  const roomId = req.url.split("?")[0].replace("/", "");
-  console.log(`📄 Yjs Room ID: ${roomId}`);
+    httpServer.on("upgrade", (req, socket, head) => {
+      // Route 1: Socket.io requests (already handled)
+      if (req.url.startsWith("/socket.io/")) {
+        return;
+      }
 
-  // (Optional) Pre-create the Yjs document using your documentManager
-  // This ensures the doc exists before the client connects.
-  getDocument(roomId);
+      // Route 2: Yjs requests (everything else)
+      console.log(`🔌 Yjs WebSocket upgrade for: ${req.url}`);
+      const roomId = req.url.split("?")[0].replace("/", "");
+      console.log(`📄 Yjs Room ID: ${roomId}`);
 
-  // Hand over to the official Yjs setup function
-  yjsWss.handleUpgrade(req, socket, head, (conn) => {
-    // Pass the connection to y-websocket's utility
-    // It handles the Yjs sync protocol (awareness + document sync)
-    setupWSConnection(conn, req);
+      // Ensure the Yjs document exists (create if not)
+      getDocument(roomId);
+
+      yjsWss.handleUpgrade(req, socket, head, (conn) => {
+        setupWSConnection(conn, req);
+      });
+    });
+
+    // ============ Start the server ============
+    const PORT = process.env.PORT || 5000;
+    httpServer.listen(PORT, () => {
+      console.log(`✅ Server running on http://localhost:${PORT}`);
+      console.log(`🩺 Health check: http://localhost:${PORT}/health`);
+      console.log(`🔌 Socket.io: ws://localhost:${PORT}/socket.io/`);
+      console.log(`🔄 Yjs WebSocket: ws://localhost:${PORT}/:roomId`);
+      console.log(`🔐 Auth token: demo123`);
+      startPersistenceScheduler();
+    });
+
+    // ============ Graceful shutdown ============
+    process.on("SIGINT", async () => {
+      console.log("\n💾 Saving all Yjs documents before shutdown...");
+      try {
+        await persistAllDocuments();
+        console.log("✅ All documents saved.");
+      } catch (err) {
+        console.error("❌ Failed to save documents:", err);
+      }
+      process.exit(0);
+    });
+  })
+  .catch((err) => {
+    console.error("❌ Server startup failed:", err);
+    process.exit(1);
   });
-});
-// ============ 👆 END Yjs SETUP ============
-
-// ============ Start the server ============
-const PORT = process.env.PORT || 5000;
-httpServer.listen(PORT, () => {
-  console.log(`✅ Server running on http://localhost:${PORT}`);
-  console.log(`🩺 Health check: http://localhost:${PORT}/health`);
-  console.log(`🔌 Socket.io: ws://localhost:${PORT}/socket.io/`);
-  console.log(`🔄 Yjs WebSocket: ws://localhost:${PORT}/:roomId`);
-  console.log(`🔐 Auth token: demo123`);
-});
-
-// Handle unhandled rejections
-process.on("unhandledRejection", (err) => {
-  console.error("❌ Unhandled Rejection:", err.message);
-  httpServer.close(() => process.exit(1));
-});
