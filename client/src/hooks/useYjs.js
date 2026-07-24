@@ -8,7 +8,7 @@ import { WebsocketProvider } from "y-websocket";
  * Handles proper resource cleanup when the room changes or component unmounts.
  * 
  * @param {string} roomId - The dynamic room identifier
- * @returns {Object} Yjs connection states { doc, provider, awareness, shapesArray, metaMap, codeText }
+ * @returns {Object} Yjs connection states { doc, provider, awareness, shapesArray, metaMap, codeText, filesArray }
  */
 const useYjs = (roomId) => {
   const [yjsInstances, setYjsInstances] = useState({
@@ -18,6 +18,7 @@ const useYjs = (roomId) => {
     shapesArray: null,
     metaMap: null,
     codeText: null,
+    filesArray: null,
   });
 
   useEffect(() => {
@@ -30,6 +31,7 @@ const useYjs = (roomId) => {
         shapesArray: null,
         metaMap: null,
         codeText: null,
+        filesArray: null,
       });
       return;
     }
@@ -50,8 +52,11 @@ const useYjs = (roomId) => {
     // 5. Access the shared Yjs Map for editor metadata (named "meta")
     const metaMap = doc.getMap("meta");
 
-    // PART 1: Access the shared Yjs Text for real-time code editing (named "code")
+    // Access the shared Yjs Text for real-time code editing (named "code")
     const codeText = doc.getText("code");
+
+    // PART 1: Access the shared Yjs Array for multi-file workspace (named "files")
+    const filesArray = doc.getArray("files");
 
     // 6. Access the awareness instance for user cursor/state sharing
     const awareness = provider.awareness;
@@ -64,6 +69,7 @@ const useYjs = (roomId) => {
       shapesArray,
       metaMap,
       codeText,
+      filesArray,
     });
 
     // 7. Cleanup function to close connections and prevent memory leaks
