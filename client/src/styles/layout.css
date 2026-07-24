@@ -13,17 +13,17 @@
    ======================================== */
 .split-layout {
   flex: 1;
-  display: grid;
-  grid-template-columns: 1fr 1fr; /* 50% / 50% */
+  display: flex;
+  height: calc(100vh - 70px);
   overflow: hidden;
   background: #ffffff;
-  min-height: 0;
 }
 
 /* ========================================
    Left Panel - Whiteboard Section
    ======================================== */
 .left-panel {
+  flex: 1;
   display: flex;
   justify-content: center;
   align-items: center;
@@ -39,6 +39,7 @@
    Right Panel - Code Editor & Participants
    ======================================== */
 .right-panel {
+  flex: 1;
   display: flex;
   flex-direction: column;
   background: #ffffff;
@@ -47,123 +48,80 @@
 }
 
 /* ========================================
-   Code Editor Panel
+   Editor Container
    ======================================== */
-.code-editor-panel {
+.editor-container {
   flex: 3;
-  height: 100%;
   overflow: hidden;
+  border-bottom: 2px solid #e2e8f0;
   background: #1e1e2e;
-  min-height: 200px;
+  min-height: 0;
   position: relative;
 }
 
 /* ========================================
-   Panel Content (Centered)
+   Participant Sidebar (uses participants.css)
    ======================================== */
-.panel-content {
-  text-align: center;
-  padding: 40px;
-  max-width: 400px;
-  animation: fadeIn 0.6s ease;
-}
-
-.panel-icon {
-  font-size: 64px;
-  margin-bottom: 16px;
-  display: block;
-  animation: bounce 2s infinite;
-}
-
-.panel-content h2 {
-  font-size: 28px;
-  font-weight: 700;
-  color: #1a202c;
-  margin-bottom: 8px;
-  letter-spacing: -0.5px;
-}
-
-.panel-content p {
-  font-size: 16px;
-  color: #718096;
-  margin-bottom: 24px;
-}
-
-.panel-placeholder {
-  padding: 16px 24px;
-  background: #edf2f7;
-  border-radius: 8px;
-  border: 2px dashed #cbd5e0;
-  color: #4a5568;
-  font-size: 14px;
-  font-weight: 500;
-  transition: all 0.3s ease;
-}
-
-.panel-placeholder:hover {
-  background: #e2e8f0;
-  border-color: #a0aec0;
-  transform: scale(1.02);
-}
-
-/* ========================================
-   Animations
-   ======================================== */
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-@keyframes bounce {
-  0%,
-  100% {
-    transform: translateY(0);
-  }
-  50% {
-    transform: translateY(-10px);
-  }
+.participant-sidebar {
+  flex: 1;
+  overflow-y: auto;
+  min-height: 100px;
+  max-height: 250px;
 }
 
 /* ========================================
    RESPONSIVE DESIGN
    ======================================== */
 
-/* Tablet: Stack vertically */
+/* Tablet */
 @media (max-width: 768px) {
   .split-layout {
-    grid-template-columns: 1fr;
-    grid-template-rows: 1fr 1fr;
+    flex-direction: column;
+    height: calc(100vh - auto);
   }
 
   .left-panel {
+    flex: 1;
     border-right: none;
     border-bottom: 2px solid #e2e8f0;
     padding: 8px;
+    min-height: 300px;
   }
 
   .right-panel {
-    flex-direction: column;
+    flex: 1;
+    min-height: 300px;
   }
 
-  .code-editor-panel {
-    flex: 1;
+  .editor-container {
+    flex: 2;
     min-height: 150px;
+  }
+
+  .participant-sidebar {
+    flex: 1;
+    min-height: 80px;
+    max-height: 150px;
   }
 }
 
-/* Mobile: Smaller screens */
+/* Mobile */
 @media (max-width: 480px) {
   .left-panel {
     padding: 6px;
+    min-height: 200px;
   }
 
-  .code-editor-panel {
+  .right-panel {
+    min-height: 200px;
+  }
+
+  .editor-container {
     min-height: 100px;
+  }
+
+  .participant-sidebar {
+    min-height: 60px;
+    max-height: 120px;
   }
 }

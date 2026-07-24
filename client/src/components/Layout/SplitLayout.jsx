@@ -18,12 +18,9 @@ const SplitLayout = () => {
 
         {/* Right Panel - Code Editor & Participants */}
         <div className="right-panel">
-          {/* Code Editor */}
-          <div className="code-editor-panel">
+          <div className="editor-container">
             <CodeEditor />
           </div>
-
-          {/* Participant Sidebar */}
           <ParticipantSidebar />
         </div>
       </div>

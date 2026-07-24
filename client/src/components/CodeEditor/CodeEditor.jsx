@@ -4,60 +4,94 @@ import "./codeEditor.css";
 
 /**
  * ============================================
- * CodeEditor Component
+ * CodeEditor Component - Professional Setup
  * ============================================
- * A wrapper around Monaco Editor with:
- * - Syntax highlighting
- * - Line numbers
- * - Theme support
- * - Language selection
- * - Editor instance reference for Yjs integration
- *
- * @component
+ * Fully configured Monaco Editor with:
+ * - Dark theme (vs-dark)
+ * - Professional settings
+ * - Language support
+ * - Editor ref for Yjs integration
  */
 const CodeEditor = () => {
   const editorRef = useRef(null);
   const [language, setLanguage] = useState("javascript");
+  const [isEditorReady, setIsEditorReady] = useState(false);
   const [code, setCode] = useState(`function hello() {
   console.log("Welcome to SyncSpace!");
 }
 
 // Start coding here...
+// Try typing: const sum = (a, b) => a + b;
 `);
 
   /**
    * Called when the editor is mounted
-   * Stores the editor instance for future use (Yjs integration)
+   * Stores editor instance and applies settings
    */
   const handleEditorDidMount = (editor, monaco) => {
     editorRef.current = editor;
-    console.log("✅ Monaco Editor Ready");
-    console.log("📝 Editor instance stored in ref");
+    setIsEditorReady(true);
+    console.log("✅ Monaco Editor mounted");
 
-    // Optional: Configure editor settings
+    // Apply professional settings
     editor.updateOptions({
-      fontSize: 14,
+      fontSize: 15,
       fontFamily: 'Consolas, "Courier New", monospace',
       minimap: { enabled: false },
       scrollBeyondLastLine: false,
+      wordWrap: "on",
+      roundedSelection: true,
+      cursorBlinking: "smooth",
+      formatOnPaste: true,
+      formatOnType: true,
       automaticLayout: true,
+      tabSize: 4,
+      insertSpaces: true,
+      lineNumbers: "on",
+      renderWhitespace: "selection",
+      bracketPairColorization: { enabled: true },
+      matchBrackets: "always",
+      suggest: {
+        showKeywords: true,
+        showSnippets: true,
+      },
+      folding: true,
+      foldingStrategy: "indentation",
+      smoothScrolling: true,
+      cursorSmoothCaretAnimation: true,
     });
 
-    // Add custom theme (optional)
+    // Define custom theme
     monaco.editor.defineTheme("syncspace-dark", {
       base: "vs-dark",
       inherit: true,
-      rules: [],
+      rules: [
+        { token: "comment", foreground: "6272a4" },
+        { token: "keyword", foreground: "ff79c6" },
+        { token: "string", foreground: "f1fa8c" },
+        { token: "number", foreground: "bd93f9" },
+        { token: "function", foreground: "50fa7b" },
+        { token: "variable", foreground: "f8f8f2" },
+        { token: "operator", foreground: "ff79c6" },
+      ],
       colors: {
         "editor.background": "#1e1e2e",
         "editor.foreground": "#cdd6f4",
         "editor.lineHighlightBackground": "#313244",
         "editor.selectionBackground": "#45475a",
+        "editor.inactiveSelectionBackground": "#313244",
+        "editorIndentGuide.background": "#313244",
+        "editorIndentGuide.activeBackground": "#45475a",
+        "editor.lineNumber.foreground": "#6c7086",
+        "editor.lineNumber.activeForeground": "#cdd6f4",
       },
     });
 
-    // Apply the theme
+    // Apply theme
     monaco.editor.setTheme("syncspace-dark");
+
+    // Focus the editor
+    editor.focus();
   };
 
   /**
@@ -74,25 +108,24 @@ const CodeEditor = () => {
    */
   const handleCodeChange = (value) => {
     setCode(value || "");
-    console.log("✏️ Code updated, length:", (value || "").length);
   };
 
   /**
-   * Get the editor instance for external use
+   * Format code
    */
-  const getEditor = () => {
-    return editorRef.current;
+  const handleFormatCode = () => {
+    if (editorRef.current) {
+      editorRef.current.getAction("editor.action.formatDocument").run();
+      console.log("📝 Code formatted");
+    }
   };
 
-  // Log when editor ref changes
-  useEffect(() => {
-    console.log(
-      "🔄 Editor ref updated:",
-      editorRef.current ? "Available" : "Not yet",
-    );
-  }, [editorRef.current]);
+  /**
+   * Get editor instance for external use
+   */
+  const getEditor = () => editorRef.current;
 
-  // Languages supported by Monaco
+  // Languages supported
   const languages = [
     { value: "javascript", label: "JavaScript" },
     { value: "typescript", label: "TypeScript" },
@@ -117,6 +150,7 @@ const CodeEditor = () => {
         <div className="editor-toolbar-left">
           <span className="editor-icon">📝</span>
           <span className="editor-title">Code Editor</span>
+          {isEditorReady && <span className="editor-ready-badge">● Ready</span>}
         </div>
         <div className="editor-toolbar-right">
           <select
@@ -131,9 +165,14 @@ const CodeEditor = () => {
               </option>
             ))}
           </select>
-          <span className="editor-status">
-            {editorRef.current ? "🟢 Connected" : "🟡 Loading..."}
-          </span>
+          <button
+            className="format-btn"
+            onClick={handleFormatCode}
+            title="Format Code (Shift+Alt+F)"
+          >
+            ✨ Format
+          </button>
+          <span className="editor-status">{isEditorReady ? "🟢" : "🟡"}</span>
         </div>
       </div>
 
@@ -146,31 +185,33 @@ const CodeEditor = () => {
           value={code}
           onChange={handleCodeChange}
           onMount={handleEditorDidMount}
+          theme="syncspace-dark"
           options={{
-            fontSize: 14,
+            automaticLayout: true,
+            fontSize: 15,
             fontFamily: 'Consolas, "Courier New", monospace',
             minimap: { enabled: false },
             scrollBeyondLastLine: false,
-            automaticLayout: true,
+            wordWrap: "on",
+            roundedSelection: true,
+            cursorBlinking: "smooth",
+            formatOnPaste: true,
+            formatOnType: true,
+            tabSize: 4,
+            insertSpaces: true,
             lineNumbers: "on",
             renderWhitespace: "selection",
-            tabSize: 2,
-            insertSpaces: true,
-            bracketPairColorization: {
-              enabled: true,
-            },
+            bracketPairColorization: { enabled: true },
             matchBrackets: "always",
+            folding: true,
+            foldingStrategy: "indentation",
+            smoothScrolling: true,
+            cursorSmoothCaretAnimation: true,
             suggest: {
               showKeywords: true,
               showSnippets: true,
             },
-            folding: true,
-            foldingStrategy: "indentation",
-            formatOnPaste: true,
-            formatOnType: true,
-            wordWrap: "on",
           }}
-          theme="syncspace-dark"
         />
       </div>
     </div>
