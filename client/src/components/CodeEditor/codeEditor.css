@@ -61,6 +61,16 @@
   animation: pulse 2s infinite;
 }
 
+.editor-binding-badge {
+  font-size: 11px;
+  color: #f9e2af;
+  background: rgba(249, 226, 175, 0.1);
+  padding: 2px 10px;
+  border-radius: 12px;
+  border: 1px solid rgba(249, 226, 175, 0.2);
+  animation: pulse 2s infinite;
+}
+
 @keyframes pulse {
   0%,
   100% {
@@ -137,6 +147,16 @@
 
 .format-btn.debug-btn:hover {
   background: #3b6a8b;
+}
+
+/* Test Yjs Button */
+.format-btn.test-btn {
+  background: #4a2d4a;
+  border-color: #6b3b5a;
+}
+
+.format-btn.test-btn:hover {
+  background: #5a3b5a;
 }
 
 /* Editor Status Indicator */
@@ -219,7 +239,8 @@
   }
 
   .editor-ready-badge,
-  .editor-yjs-badge {
+  .editor-yjs-badge,
+  .editor-binding-badge {
     font-size: 10px;
     padding: 1px 8px;
   }
@@ -272,7 +293,8 @@
   }
 
   .editor-ready-badge,
-  .editor-yjs-badge {
+  .editor-yjs-badge,
+  .editor-binding-badge {
     font-size: 9px;
     padding: 1px 6px;
     display: none; /* Hide badges on very small screens */
@@ -347,6 +369,12 @@
     border-color: rgba(26, 115, 232, 0.2);
   }
 
+  .editor-binding-badge {
+    color: #b8860b;
+    background: rgba(184, 134, 11, 0.1);
+    border-color: rgba(184, 134, 11, 0.2);
+  }
+
   .language-selector {
     background: #f8f9fa;
     color: #202124;
@@ -380,6 +408,16 @@
 
   .format-btn.debug-btn:hover {
     background: #d2e3fc;
+  }
+
+  .format-btn.test-btn {
+    background: #fce8e8;
+    border-color: #f5b6b6;
+    color: #d32f2f;
+  }
+
+  .format-btn.test-btn:hover {
+    background: #fcd2d2;
   }
 
   .code-editor-container {
@@ -433,7 +471,8 @@
   }
 
   .editor-ready-badge,
-  .editor-yjs-badge {
+  .editor-yjs-badge,
+  .editor-binding-badge {
     border-width: 2px;
   }
 }
@@ -459,7 +498,8 @@
    Reduced Motion
    ======================================== */
 @media (prefers-reduced-motion: reduce) {
-  .editor-yjs-badge {
+  .editor-yjs-badge,
+  .editor-binding-badge {
     animation: none;
   }
 
@@ -498,7 +538,7 @@
 }
 
 .code-editor-container.loading::after {
-  content: " Loading Editor...";
+  content: "⏳ Loading Editor...";
 }
 
 /* ========================================
@@ -514,5 +554,102 @@
 }
 
 .code-editor-container.error::after {
-  content: " Failed to load editor";
+  content: "❌ Failed to load editor";
+}
+
+/* ========================================
+   Scrollbar for Editor Container
+   ======================================== */
+.code-editor-container ::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+.code-editor-container ::-webkit-scrollbar-track {
+  background: #1e1e2e;
+}
+
+.code-editor-container ::-webkit-scrollbar-thumb {
+  background: #45475a;
+  border-radius: 5px;
+}
+
+.code-editor-container ::-webkit-scrollbar-thumb:hover {
+  background: #585b70;
+}
+
+/* Light mode scrollbar */
+@media (prefers-color-scheme: light) {
+  .code-editor-container ::-webkit-scrollbar-track {
+    background: #f1f3f4;
+  }
+
+  .code-editor-container ::-webkit-scrollbar-thumb {
+    background: #dadce0;
+  }
+
+  .code-editor-container ::-webkit-scrollbar-thumb:hover {
+    background: #bdc1c6;
+  }
+}
+
+/* ========================================
+   Editor Selection Colors
+   ======================================== */
+.code-editor-container .monaco-editor .selected-text {
+  background: #45475a !important;
+}
+
+.code-editor-container .monaco-editor .view-line span.inline-selected-text {
+  background: #45475a !important;
+}
+
+/* Light mode selection */
+@media (prefers-color-scheme: light) {
+  .code-editor-container .monaco-editor .selected-text {
+    background: #d2e3fc !important;
+  }
+
+  .code-editor-container .monaco-editor .view-line span.inline-selected-text {
+    background: #d2e3fc !important;
+  }
+}
+
+/* ========================================
+   Line Highlight
+   ======================================== */
+.code-editor-container .monaco-editor .view-overlays .current-line {
+  border: none !important;
+  background: rgba(49, 50, 68, 0.5) !important;
+}
+
+/* Light mode line highlight */
+@media (prefers-color-scheme: light) {
+  .code-editor-container .monaco-editor .view-overlays .current-line {
+    background: rgba(232, 240, 254, 0.5) !important;
+  }
+}
+
+/* ========================================
+   Editor Find Widget
+   ======================================== */
+.code-editor-container .monaco-editor .find-widget {
+  background: #1e1e2e !important;
+  border-color: #313244 !important;
+}
+
+.code-editor-container .monaco-editor .find-widget .button {
+  color: #cdd6f4 !important;
+}
+
+/* Light mode find widget */
+@media (prefers-color-scheme: light) {
+  .code-editor-container .monaco-editor .find-widget {
+    background: #ffffff !important;
+    border-color: #dadce0 !important;
+  }
+
+  .code-editor-container .monaco-editor .find-widget .button {
+    color: #202124 !important;
+  }
 }

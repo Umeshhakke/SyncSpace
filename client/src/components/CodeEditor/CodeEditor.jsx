@@ -1,32 +1,36 @@
 import React, { useRef, useState, useEffect } from "react";
 import Editor from "@monaco-editor/react";
+import { MonacoBinding } from "y-monaco";
 import useYjsEditor from "../../hooks/useYjsEditor";
 import "./codeEditor.css";
 
 /**
  * ============================================
- * CodeEditor Component with Yjs Integration
+ * CodeEditor Component with Yjs Binding
  * ============================================
- * Monaco Editor with Yjs shared document.
- * Currently independent - binding will be added Day 4.
+ * Monaco Editor connected to Yjs shared text via MonacoBinding.
+ * All changes are synchronized both ways.
  */
 const CodeEditor = () => {
   const editorRef = useRef(null);
+  const monacoRef = useRef(null);
+  const bindingRef = useRef(null);
   const [language, setLanguage] = useState("javascript");
   const [isEditorReady, setIsEditorReady] = useState(false);
-  const [editorContent, setEditorContent] = useState("");
+  const [isBindingReady, setIsBindingReady] = useState(false);
 
   // Initialize Yjs document and shared text
   const { ydoc, yText, isInitialized, version, getContent } = useYjsEditor();
 
   /**
    * Called when the editor is mounted
+   * Creates the MonacoBinding between editor and Y.Text
    */
   const handleEditorDidMount = (editor, monaco) => {
     editorRef.current = editor;
+    monacoRef.current = monaco;
     setIsEditorReady(true);
     console.log("✅ Monaco Editor mounted");
-    console.log("📝 Editor stored in ref");
 
     // Apply editor settings
     editor.updateOptions({
@@ -60,28 +64,84 @@ const CodeEditor = () => {
         { token: "number", foreground: "bd93f9" },
         { token: "function", foreground: "50fa7b" },
         { token: "variable", foreground: "f8f8f2" },
+        { token: "operator", foreground: "ff79c6" },
       ],
       colors: {
         "editor.background": "#1e1e2e",
         "editor.foreground": "#cdd6f4",
         "editor.lineHighlightBackground": "#313244",
         "editor.selectionBackground": "#45475a",
+        "editor.inactiveSelectionBackground": "#313244",
+        "editorIndentGuide.background": "#313244",
+        "editorIndentGuide.activeBackground": "#45475a",
+        "editor.lineNumber.foreground": "#6c7086",
+        "editor.lineNumber.activeForeground": "#cdd6f4",
       },
     });
 
     monaco.editor.setTheme("syncspace-dark");
     editor.focus();
 
-    // Log Yjs state
-    console.log("📊 Yjs State in Editor:");
-    console.log("  - Y.Doc ready:", !!ydoc);
-    console.log("  - Y.Text ready:", !!yText);
-    console.log("  - Y.Text content length:", yText.length);
-    console.log(
-      "  - Y.Text content preview:",
-      yText.toString().substring(0, 50) + "...",
-    );
+    // Create the MonacoBinding after editor is ready
+    createBinding(editor);
   };
+
+  /**
+   * Create MonacoBinding between editor and Y.Text
+   */
+  const createBinding = (editor) => {
+    try {
+      // Get the editor model
+      const model = editor.getModel();
+      if (!model) {
+        console.warn("⚠️ Editor model not available");
+        return;
+      }
+
+      console.log("📝 Creating MonacoBinding...");
+      console.log("  - Y.Text length:", yText.length);
+      console.log("  - Model value length:", model.getValue().length);
+
+      // Create the binding
+      const binding = new MonacoBinding(
+        yText, // Y.Text shared document
+        model, // Monaco editor model
+        new Set([editor]), // Set of editors sharing this model
+        null, // Awareness (cursor presence) - coming later
+      );
+
+      bindingRef.current = binding;
+      setIsBindingReady(true);
+      console.log("✅ MonacoBinding created successfully!");
+      console.log("🔄 Editor ↔ Y.Text synchronized");
+
+      // Log initial state
+      console.log("📊 Initial binding state:");
+      console.log("  - Y.Text content length:", yText.length);
+      console.log("  - Model value length:", model.getValue().length);
+      console.log(
+        "  - Content matches:",
+        yText.toString() === model.getValue(),
+      );
+    } catch (error) {
+      console.error("❌ Failed to create MonacoBinding:", error);
+    }
+  };
+
+  /**
+   * Cleanup binding on unmount or when dependencies change
+   */
+  useEffect(() => {
+    return () => {
+      if (bindingRef.current) {
+        console.log("🗑️ Destroying MonacoBinding...");
+        bindingRef.current.destroy();
+        bindingRef.current = null;
+        setIsBindingReady(false);
+        console.log("✅ MonacoBinding destroyed");
+      }
+    };
+  }, []);
 
   /**
    * Handle language change
@@ -90,15 +150,14 @@ const CodeEditor = () => {
     const newLanguage = e.target.value;
     setLanguage(newLanguage);
     console.log("📝 Language changed to:", newLanguage);
-  };
 
-  /**
-   * Handle code change - currently local only
-   * Will be replaced with Yjs binding in Day 4
-   */
-  const handleCodeChange = (value) => {
-    setEditorContent(value || "");
-    // Note: In Day 4, this will be handled by Yjs
+    // Update editor language
+    if (editorRef.current) {
+      const model = editorRef.current.getModel();
+      if (model) {
+        monacoRef.current.editor.setModelLanguage(model, newLanguage);
+      }
+    }
   };
 
   /**
@@ -112,22 +171,34 @@ const CodeEditor = () => {
   };
 
   /**
-   * Log Yjs state on demand
+   * Log Yjs state for debugging
    */
   const logYjsState = () => {
     console.log("📊 Yjs Document State:");
     console.log("  - Initialized:", isInitialized);
     console.log("  - Version:", version);
-    console.log("  - Content Length:", yText.length);
-    console.log("  - Full Content:", yText.toString());
+    console.log("  - Y.Text length:", yText.length);
+    console.log("  - Y.Text content:", yText.toString());
+    console.log("  - Binding active:", !!bindingRef.current);
+
+    if (editorRef.current) {
+      const model = editorRef.current.getModel();
+      console.log("  - Editor model length:", model?.getValue().length || 0);
+      console.log(
+        "  - Sync status:",
+        yText.toString() === model?.getValue() ? "✅ Synced" : "❌ Out of sync",
+      );
+    }
   };
 
-  // Log when Yjs state changes
-  useEffect(() => {
-    if (isInitialized) {
-      console.log("🔄 Yjs document updated, version:", version);
-    }
-  }, [isInitialized, version]);
+  /**
+   * Test Yjs programmatic update
+   */
+  const testYjsUpdate = () => {
+    const testText = `\n// Programmatic update from Yjs at ${new Date().toLocaleTimeString()}\n`;
+    yText.insert(yText.length, testText);
+    console.log("📝 Programmatic Yjs update inserted");
+  };
 
   // Languages supported
   const languages = [
@@ -155,7 +226,10 @@ const CodeEditor = () => {
           <span className="editor-icon">📝</span>
           <span className="editor-title">Code Editor</span>
           {isEditorReady && <span className="editor-ready-badge">● Ready</span>}
-          {isInitialized && <span className="editor-yjs-badge">🔄 Synced</span>}
+          {isInitialized && <span className="editor-yjs-badge">🔄 Yjs</span>}
+          {isBindingReady && (
+            <span className="editor-binding-badge">🔗 Bound</span>
+          )}
         </div>
         <div className="editor-toolbar-right">
           <select
@@ -179,12 +253,21 @@ const CodeEditor = () => {
           </button>
           <button
             className="format-btn"
+            onClick={testYjsUpdate}
+            title="Test Yjs Programmatic Update"
+          >
+            📝 Test Yjs
+          </button>
+          <button
+            className="format-btn debug-btn"
             onClick={logYjsState}
             title="Log Yjs State"
           >
             📊 Debug
           </button>
-          <span className="editor-status">{isEditorReady ? "🟢" : "🟡"}</span>
+          <span className="editor-status">
+            {isBindingReady ? "🟢" : isEditorReady ? "🟡" : "🔴"}
+          </span>
         </div>
       </div>
 
@@ -194,8 +277,6 @@ const CodeEditor = () => {
           height="100%"
           width="100%"
           language={language}
-          value={editorContent}
-          onChange={handleCodeChange}
           onMount={handleEditorDidMount}
           theme="syncspace-dark"
           options={{
@@ -216,6 +297,10 @@ const CodeEditor = () => {
             matchBrackets: "always",
             folding: true,
             smoothScrolling: true,
+            suggest: {
+              showKeywords: true,
+              showSnippets: true,
+            },
           }}
         />
       </div>

@@ -39,7 +39,6 @@ const useYjsEditor = () => {
     if (!isInitialized && yText.toString() === "") {
       console.log("📝 Initializing Y.Text with default content");
 
-      // Insert default content
       yText.insert(
         0,
         `function hello() {
@@ -64,10 +63,8 @@ const useYjsEditor = () => {
       setVersion((prev) => prev + 1);
     };
 
-    // Observe changes to the Y.Text
     yText.observe(handleChange);
 
-    // Cleanup observer on unmount
     return () => {
       yText.unobserve(handleChange);
       console.log("🔄 Y.Text observer removed");
@@ -85,8 +82,6 @@ const useYjsEditor = () => {
     );
     console.log("  - Content Length:", yText.length);
 
-    // Log all shared types in the document
-    console.log("📊 Shared Types in Y.Doc:");
     ydoc.share.forEach((value, key) => {
       console.log(`  - ${key}: ${value.constructor.name}`);
     });
@@ -153,16 +148,16 @@ const useYjsEditor = () => {
   };
 
   return {
-    ydoc, // The shared document
-    yText, // The shared text
-    isInitialized, // Whether document is initialized
-    version, // Version counter for changes
-    getContent, // Get current text content
-    getLength, // Get text length
-    insertText, // Insert text at position
-    deleteText, // Delete text at position
-    getDocument, // Get Y.Doc for providers
-    getText, // Get Y.Text for binding
+    ydoc,
+    yText,
+    isInitialized,
+    version,
+    getContent,
+    getLength,
+    insertText,
+    deleteText,
+    getDocument,
+    getText,
   };
 };
 
