@@ -4,11 +4,11 @@ import { WebsocketProvider } from "y-websocket";
 
 /**
  * Custom React hook to initialize and manage Yjs real-time collaborative state.
- * Exposes a Y.Doc, a WebsocketProvider, and an awareness presence instance.
+ * Exposes a Y.Doc, a WebsocketProvider, an awareness presence instance, and shared structures.
  * Handles proper resource cleanup when the room changes or component unmounts.
  * 
  * @param {string} roomId - The dynamic room identifier
- * @returns {Object} Yjs connection states { doc, provider, awareness, shapesArray }
+ * @returns {Object} Yjs connection states { doc, provider, awareness, shapesArray, metaMap }
  */
 const useYjs = (roomId) => {
   const [yjsInstances, setYjsInstances] = useState({
@@ -16,6 +16,7 @@ const useYjs = (roomId) => {
     provider: null,
     awareness: null,
     shapesArray: null,
+    metaMap: null,
   });
 
   useEffect(() => {
@@ -26,6 +27,7 @@ const useYjs = (roomId) => {
         provider: null,
         awareness: null,
         shapesArray: null,
+        metaMap: null,
       });
       return;
     }
@@ -43,7 +45,10 @@ const useYjs = (roomId) => {
     // 4. Access the shared Yjs Array for shape drawings (named "shapes" as required)
     const shapesArray = doc.getArray("shapes");
 
-    // 5. Access the awareness instance for user cursor/state sharing
+    // 5. Access the shared Yjs Map for editor metadata (named "meta")
+    const metaMap = doc.getMap("meta");
+
+    // 6. Access the awareness instance for user cursor/state sharing
     const awareness = provider.awareness;
 
     // Save the created instances to React state to share with consuming hooks/components
@@ -52,9 +57,10 @@ const useYjs = (roomId) => {
       provider,
       awareness,
       shapesArray,
+      metaMap,
     });
 
-    // 6. Cleanup function to close connections and prevent memory leaks
+    // 7. Cleanup function to close connections and prevent memory leaks
     return () => {
       if (provider) {
         provider.destroy();

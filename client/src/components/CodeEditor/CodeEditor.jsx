@@ -1,4 +1,4 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import Editor from "@monaco-editor/react";
 
 // List of supported languages for the Monaco editor selector
@@ -14,7 +14,8 @@ const SUPPORTED_LANGUAGES = [
 
 /**
  * CodeEditor Component
- * Responsive Monaco Editor component with full panel layout, dynamic theme, and language selection.
+ * Responsive Monaco Editor component with full panel layout, dynamic theme,
+ * language selection, and real-time Yjs collaborative language synchronization.
  */
 const CodeEditor = ({
   defaultValue = "// Type your code here...",
@@ -22,6 +23,8 @@ const CodeEditor = ({
   theme,
   height = "100%",
   width = "100%",
+  doc,
+  metaMap: metaMapProp,
   onMount,
   onChange,
   options = {},
@@ -36,6 +39,9 @@ const CodeEditor = ({
   const editorRef = useRef(null);
   const monacoRef = useRef(null);
 
+  // STEP 1: Obtain Yjs shared map for editor metadata ("meta")
+  const metaMap = metaMapProp || (doc ? doc.getMap("meta") : null);
+
   /**
    * Callback fired when Monaco Editor finishes mounting
    */
@@ -49,21 +55,76 @@ const CodeEditor = ({
   };
 
   /**
-   * Handler for language dropdown changes
+   * Handler for local language dropdown changes
    */
   const handleLanguageChange = (e) => {
     const newLanguage = e.target.value;
+
+    // STEP 4: Prevent unnecessary processing if language is unchanged
+    if (newLanguage === language) return;
+
     setLanguage(newLanguage);
 
+    // Update local Monaco editor model language
     if (editorRef.current && monacoRef.current) {
-      // 1. Obtain current Monaco model
       const model = editorRef.current.getModel();
       if (model) {
-        // 2. Dynamically switch language model while preserving editor text content
         monacoRef.current.editor.setModelLanguage(model, newLanguage);
       }
     }
+
+    // STEP 2: Propagate selected language to shared Yjs metadata map
+    if (metaMap) {
+      metaMap.set("language", newLanguage);
+    }
   };
+
+  // STEP 3: Register Yjs observer for collaborative language changes
+  useEffect(() => {
+    if (!metaMap) return;
+
+    const handleMetaChange = (event) => {
+      const remoteLanguage = metaMap.get("language");
+      if (!remoteLanguage) return;
+
+      // STEP 4: Prevent synchronization loops if received language matches local state
+      setLanguage((prevLanguage) => {
+        if (prevLanguage === remoteLanguage) {
+          return prevLanguage;
+        }
+
+        // STEP 5: Update Monaco model language without recreating editor/model/Y.Doc
+        if (editorRef.current && monacoRef.current) {
+          const model = editorRef.current.getModel();
+          if (model) {
+            monacoRef.current.editor.setModelLanguage(model, remoteLanguage);
+          }
+        }
+
+        return remoteLanguage;
+      });
+    };
+
+    // Observe changes on Yjs meta map
+    metaMap.observe(handleMetaChange);
+
+    // Initial sync check for existing language in shared Yjs metaMap on mount
+    const currentMetaLanguage = metaMap.get("language");
+    if (currentMetaLanguage && currentMetaLanguage !== language) {
+      setLanguage(currentMetaLanguage);
+      if (editorRef.current && monacoRef.current) {
+        const model = editorRef.current.getModel();
+        if (model) {
+          monacoRef.current.editor.setModelLanguage(model, currentMetaLanguage);
+        }
+      }
+    }
+
+    // STEP 6: Remove observer inside useEffect cleanup
+    return () => {
+      metaMap.unobserve(handleMetaChange);
+    };
+  }, [metaMap]);
 
   // Dynamic styles for dark vs light mode container and toolbar
   const activeStyles = isDarkMode ? darkStyles : lightStyles;
