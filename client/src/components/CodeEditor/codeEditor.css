@@ -10,65 +10,209 @@
 }
 
 /* ========================================
-   Editor Toolbar
+   EDITOR TOOLBAR
    ======================================== */
 .editor-toolbar {
   display: flex;
-  justify-content: space-between;
   align-items: center;
+  gap: 8px;
   padding: 8px 16px;
   background: #181825;
   border-bottom: 1px solid #313244;
   flex-shrink: 0;
-  min-height: 44px;
-  gap: 8px;
+  min-height: 48px;
   flex-wrap: wrap;
 }
 
-.editor-toolbar-left {
+/* Toolbar Groups */
+.toolbar-group {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 4px;
 }
 
-.editor-icon {
-  font-size: 18px;
-}
-
-.editor-title {
-  color: #cdd6f4;
+.toolbar-label {
+  color: #6c7086;
   font-size: 14px;
+  font-weight: 500;
+  min-width: 20px;
+}
+
+/* Toolbar Divider */
+.toolbar-divider {
+  width: 1px;
+  height: 28px;
+  background: #313244;
+  margin: 0 4px;
+  flex-shrink: 0;
+}
+
+/* Select Dropdowns */
+.toolbar-select {
+  background: #313244;
+  color: #cdd6f4;
+  border: 1px solid #45475a;
+  border-radius: 6px;
+  padding: 4px 10px;
+  font-size: 13px;
+  font-family: inherit;
+  cursor: pointer;
+  outline: none;
+  transition: all 0.2s ease;
+  min-width: 100px;
+  height: 32px;
+}
+
+.toolbar-select:hover {
+  background: #45475a;
+  border-color: #585b70;
+}
+
+.toolbar-select:focus {
+  border-color: #89b4fa;
+  box-shadow: 0 0 0 2px rgba(137, 180, 250, 0.2);
+}
+
+.toolbar-select option {
+  background: #1e1e2e;
+  color: #cdd6f4;
+}
+
+/* Input Fields */
+.toolbar-input {
+  background: #313244;
+  color: #cdd6f4;
+  border: 1px solid #45475a;
+  border-radius: 6px;
+  padding: 4px 8px;
+  font-size: 13px;
+  font-family: inherit;
+  outline: none;
+  transition: all 0.2s ease;
+  width: 50px;
+  height: 32px;
+  text-align: center;
+}
+
+.toolbar-input:hover {
+  background: #45475a;
+  border-color: #585b70;
+}
+
+.toolbar-input:focus {
+  border-color: #89b4fa;
+  box-shadow: 0 0 0 2px rgba(137, 180, 250, 0.2);
+}
+
+.toolbar-input-small {
+  width: 40px;
+}
+
+.toolbar-unit {
+  color: #6c7086;
+  font-size: 12px;
+}
+
+/* Checkbox */
+.toolbar-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+  color: #cdd6f4;
+  font-size: 13px;
+}
+
+.toolbar-checkbox input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+  accent-color: #89b4fa;
+}
+
+.checkbox-label {
+  font-size: 16px;
+}
+
+/* Toolbar Buttons */
+.toolbar-btn {
+  padding: 4px 12px;
+  border: 1px solid #45475a;
+  border-radius: 6px;
+  font-size: 13px;
+  font-family: inherit;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  height: 32px;
+  white-space: nowrap;
+  background: #313244;
+  color: #cdd6f4;
+}
+
+.toolbar-btn:hover {
+  background: #45475a;
+  border-color: #585b70;
+  transform: translateY(-1px);
+}
+
+.toolbar-btn:active {
+  transform: translateY(0px);
+}
+
+.toolbar-btn-format {
+  background: #2d4a6b;
+  border-color: #3b6a8b;
+  color: #89b4fa;
+}
+
+.toolbar-btn-format:hover {
+  background: #3b6a8b;
+  border-color: #4a7a9b;
+}
+
+.toolbar-btn-reset {
+  background: #4a2d2d;
+  border-color: #6b3b3b;
+  color: #f38ba8;
+}
+
+.toolbar-btn-reset:hover {
+  background: #5a3b3b;
+  border-color: #7b4b4b;
+}
+
+/* Status Indicators */
+.toolbar-status {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+}
+
+.status-badge {
+  font-size: 11px;
+  padding: 2px 10px;
+  border-radius: 12px;
   font-weight: 500;
 }
 
-/* Status Badges */
-.editor-ready-badge {
-  font-size: 11px;
+.status-synced {
   color: #a6e3a1;
   background: rgba(166, 227, 161, 0.1);
-  padding: 2px 10px;
-  border-radius: 12px;
   border: 1px solid rgba(166, 227, 161, 0.2);
 }
 
-.editor-yjs-badge {
-  font-size: 11px;
-  color: #89b4fa;
-  background: rgba(137, 180, 250, 0.1);
-  padding: 2px 10px;
-  border-radius: 12px;
-  border: 1px solid rgba(137, 180, 250, 0.2);
-  animation: pulse 2s infinite;
-}
-
-.editor-binding-badge {
-  font-size: 11px;
+.status-ready {
   color: #f9e2af;
   background: rgba(249, 226, 175, 0.1);
-  padding: 2px 10px;
-  border-radius: 12px;
   border: 1px solid rgba(249, 226, 175, 0.2);
-  animation: pulse 2s infinite;
+}
+
+.status-loading {
+  color: #f38ba8;
+  background: rgba(243, 139, 168, 0.1);
+  border: 1px solid rgba(243, 139, 168, 0.2);
+  animation: pulse 1.5s infinite;
 }
 
 @keyframes pulse {
@@ -77,92 +221,8 @@
     opacity: 1;
   }
   50% {
-    opacity: 0.6;
+    opacity: 0.5;
   }
-}
-
-.editor-toolbar-right {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-/* Language Selector */
-.language-selector {
-  background: #313244;
-  color: #cdd6f4;
-  border: 1px solid #45475a;
-  border-radius: 6px;
-  padding: 4px 12px;
-  font-size: 13px;
-  font-family: inherit;
-  cursor: pointer;
-  outline: none;
-  transition: all 0.2s ease;
-}
-
-.language-selector:hover {
-  background: #45475a;
-  border-color: #585b70;
-}
-
-.language-selector:focus {
-  border-color: #89b4fa;
-  box-shadow: 0 0 0 2px rgba(137, 180, 250, 0.2);
-}
-
-.language-selector option {
-  background: #1e1e2e;
-  color: #cdd6f4;
-}
-
-/* Format Button */
-.format-btn {
-  background: #313244;
-  color: #cdd6f4;
-  border: 1px solid #45475a;
-  border-radius: 6px;
-  padding: 4px 12px;
-  font-size: 13px;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  font-family: inherit;
-  white-space: nowrap;
-}
-
-.format-btn:hover {
-  background: #45475a;
-  border-color: #585b70;
-}
-
-.format-btn:active {
-  transform: scale(0.95);
-}
-
-/* Debug Button */
-.format-btn.debug-btn {
-  background: #2d4a6b;
-  border-color: #3b6a8b;
-}
-
-.format-btn.debug-btn:hover {
-  background: #3b6a8b;
-}
-
-/* Test Yjs Button */
-.format-btn.test-btn {
-  background: #4a2d4a;
-  border-color: #6b3b5a;
-}
-
-.format-btn.test-btn:hover {
-  background: #5a3b5a;
-}
-
-/* Editor Status Indicator */
-.editor-status {
-  font-size: 16px;
-  line-height: 1;
 }
 
 /* ========================================
@@ -174,43 +234,6 @@
   height: 100%;
   overflow: hidden;
   background: #1e1e2e;
-  border-radius: 0 0 8px 8px;
-}
-
-/* Monaco Editor Overrides */
-.code-editor-container .monaco-editor {
-  background: #1e1e2e !important;
-}
-
-.code-editor-container .monaco-editor .view-lines {
-  padding-top: 8px;
-}
-
-.code-editor-container .monaco-editor .margin {
-  background: #1e1e2e !important;
-}
-
-.code-editor-container .monaco-editor .monaco-scrollable-element {
-  background: #1e1e2e !important;
-}
-
-/* ========================================
-   Scrollbar Styling for Editor
-   ======================================== */
-.code-editor-container .monaco-editor .scrollbar {
-  background: transparent !important;
-}
-
-.code-editor-container .monaco-editor .slider {
-  background: #45475a !important;
-}
-
-.code-editor-container .monaco-editor .slider:hover {
-  background: #585b70 !important;
-}
-
-.code-editor-container .monaco-editor .slider.active {
-  background: #6c7086 !important;
 }
 
 /* ========================================
@@ -220,123 +243,117 @@
 /* Tablet */
 @media (max-width: 768px) {
   .editor-toolbar {
-    padding: 6px 12px;
-    min-height: 38px;
+    padding: 6px 10px;
+    gap: 4px;
+    min-height: 40px;
   }
 
-  .editor-title {
-    font-size: 13px;
+  .toolbar-select {
+    font-size: 12px;
+    padding: 3px 8px;
+    min-width: 80px;
+    height: 28px;
   }
 
-  .language-selector {
+  .toolbar-input {
+    font-size: 12px;
+    height: 28px;
+    width: 40px;
+  }
+
+  .toolbar-input-small {
+    width: 32px;
+  }
+
+  .toolbar-btn {
     font-size: 12px;
     padding: 3px 10px;
+    height: 28px;
   }
 
-  .format-btn {
-    font-size: 12px;
-    padding: 3px 10px;
+  .toolbar-divider {
+    height: 22px;
   }
 
-  .editor-ready-badge,
-  .editor-yjs-badge,
-  .editor-binding-badge {
+  .status-badge {
     font-size: 10px;
     padding: 1px 8px;
   }
 
-  .editor-icon {
-    font-size: 16px;
+  .toolbar-group {
+    gap: 2px;
   }
 
-  .editor-status {
-    font-size: 14px;
+  .toolbar-label {
+    font-size: 12px;
+    min-width: 16px;
   }
 }
 
 /* Mobile */
 @media (max-width: 480px) {
   .editor-toolbar {
-    padding: 4px 8px;
-    min-height: 34px;
-    gap: 4px;
-  }
-
-  .editor-toolbar-left {
-    gap: 6px;
-  }
-
-  .editor-icon {
-    font-size: 14px;
-  }
-
-  .editor-title {
-    font-size: 12px;
-  }
-
-  .editor-toolbar-right {
-    gap: 6px;
-  }
-
-  .language-selector {
-    font-size: 11px;
-    padding: 2px 8px;
-  }
-
-  .format-btn {
-    font-size: 11px;
-    padding: 2px 8px;
-  }
-
-  .editor-status {
-    font-size: 14px;
-  }
-
-  .editor-ready-badge,
-  .editor-yjs-badge,
-  .editor-binding-badge {
-    font-size: 9px;
-    padding: 1px 6px;
-    display: none; /* Hide badges on very small screens */
-  }
-}
-
-/* Very Small Screens */
-@media (max-width: 360px) {
-  .editor-toolbar {
-    padding: 2px 4px;
-    min-height: 30px;
+    padding: 4px 6px;
     gap: 2px;
+    min-height: 34px;
   }
 
-  .editor-title {
+  .toolbar-select {
+    font-size: 10px;
+    padding: 2px 6px;
+    min-width: 60px;
+    height: 24px;
+  }
+
+  .toolbar-input {
+    font-size: 10px;
+    height: 24px;
+    width: 30px;
+    padding: 2px 4px;
+  }
+
+  .toolbar-input-small {
+    width: 26px;
+  }
+
+  .toolbar-btn {
+    font-size: 10px;
+    padding: 2px 8px;
+    height: 24px;
+  }
+
+  .toolbar-divider {
+    height: 18px;
+    margin: 0 2px;
+  }
+
+  .toolbar-label {
+    font-size: 10px;
+    min-width: 12px;
+  }
+
+  .toolbar-unit {
     font-size: 10px;
   }
 
-  .language-selector {
-    font-size: 10px;
+  .status-badge {
+    font-size: 8px;
     padding: 1px 6px;
   }
 
-  .format-btn {
-    font-size: 10px;
-    padding: 1px 6px;
-  }
-
-  .editor-icon {
+  .checkbox-label {
     font-size: 12px;
   }
 
-  .editor-status {
-    font-size: 12px;
+  .toolbar-checkbox input[type="checkbox"] {
+    width: 12px;
+    height: 12px;
   }
 
-  .editor-toolbar-left {
-    gap: 4px;
-  }
-
-  .editor-toolbar-right {
-    gap: 4px;
+  .toolbar-status {
+    margin-left: 0;
+    width: 100%;
+    justify-content: center;
   }
 }
 
@@ -353,303 +370,96 @@
     border-bottom-color: #dadce0;
   }
 
-  .editor-title {
-    color: #202124;
-  }
-
-  .editor-ready-badge {
-    color: #1e7e34;
-    background: rgba(30, 126, 52, 0.1);
-    border-color: rgba(30, 126, 52, 0.2);
-  }
-
-  .editor-yjs-badge {
-    color: #1a73e8;
-    background: rgba(26, 115, 232, 0.1);
-    border-color: rgba(26, 115, 232, 0.2);
-  }
-
-  .editor-binding-badge {
-    color: #b8860b;
-    background: rgba(184, 134, 11, 0.1);
-    border-color: rgba(184, 134, 11, 0.2);
-  }
-
-  .language-selector {
+  .toolbar-select {
     background: #f8f9fa;
     color: #202124;
     border-color: #dadce0;
   }
 
-  .language-selector:hover {
+  .toolbar-select:hover {
     background: #e8eaed;
   }
 
-  .language-selector option {
+  .toolbar-select option {
     background: #ffffff;
     color: #202124;
   }
 
-  .format-btn {
+  .toolbar-input {
     background: #f8f9fa;
     color: #202124;
     border-color: #dadce0;
   }
 
-  .format-btn:hover {
+  .toolbar-input:hover {
     background: #e8eaed;
   }
 
-  .format-btn.debug-btn {
+  .toolbar-btn {
+    background: #f8f9fa;
+    color: #202124;
+    border-color: #dadce0;
+  }
+
+  .toolbar-btn:hover {
+    background: #e8eaed;
+  }
+
+  .toolbar-btn-format {
     background: #e8f0fe;
     border-color: #b6d4fe;
     color: #1a73e8;
   }
 
-  .format-btn.debug-btn:hover {
+  .toolbar-btn-format:hover {
     background: #d2e3fc;
   }
 
-  .format-btn.test-btn {
+  .toolbar-btn-reset {
     background: #fce8e8;
     border-color: #f5b6b6;
     color: #d32f2f;
   }
 
-  .format-btn.test-btn:hover {
+  .toolbar-btn-reset:hover {
     background: #fcd2d2;
+  }
+
+  .toolbar-divider {
+    background: #dadce0;
+  }
+
+  .toolbar-label {
+    color: #5f6368;
+  }
+
+  .toolbar-unit {
+    color: #5f6368;
+  }
+
+  .toolbar-checkbox {
+    color: #202124;
+  }
+
+  .status-synced {
+    color: #1e7e34;
+    background: rgba(30, 126, 52, 0.1);
+    border-color: rgba(30, 126, 52, 0.2);
+  }
+
+  .status-ready {
+    color: #b8860b;
+    background: rgba(184, 134, 11, 0.1);
+    border-color: rgba(184, 134, 11, 0.2);
+  }
+
+  .status-loading {
+    color: #d32f2f;
+    background: rgba(211, 47, 47, 0.1);
+    border-color: rgba(211, 47, 47, 0.2);
   }
 
   .code-editor-container {
     background: #ffffff;
-  }
-
-  .code-editor-container .monaco-editor {
-    background: #ffffff !important;
-  }
-
-  .code-editor-container .monaco-editor .margin {
-    background: #ffffff !important;
-  }
-
-  .code-editor-container .monaco-editor .monaco-scrollable-element {
-    background: #ffffff !important;
-  }
-
-  .code-editor-container .monaco-editor .scrollbar {
-    background: transparent !important;
-  }
-
-  .code-editor-container .monaco-editor .slider {
-    background: #dadce0 !important;
-  }
-
-  .code-editor-container .monaco-editor .slider:hover {
-    background: #bdc1c6 !important;
-  }
-
-  .code-editor-container .monaco-editor .slider.active {
-    background: #9aa0a6 !important;
-  }
-}
-
-/* ========================================
-   High Contrast / Accessibility
-   ======================================== */
-@media (prefers-contrast: high) {
-  .editor-toolbar {
-    border-bottom-width: 2px;
-    border-bottom-color: #ffffff;
-  }
-
-  .language-selector {
-    border-width: 2px;
-  }
-
-  .format-btn {
-    border-width: 2px;
-  }
-
-  .editor-ready-badge,
-  .editor-yjs-badge,
-  .editor-binding-badge {
-    border-width: 2px;
-  }
-}
-
-/* ========================================
-   Print Styles
-   ======================================== */
-@media print {
-  .editor-toolbar {
-    display: none;
-  }
-
-  .code-editor-wrapper {
-    height: 100% !important;
-  }
-
-  .code-editor-container {
-    border-radius: 0 !important;
-  }
-}
-
-/* ========================================
-   Reduced Motion
-   ======================================== */
-@media (prefers-reduced-motion: reduce) {
-  .editor-yjs-badge,
-  .editor-binding-badge {
-    animation: none;
-  }
-
-  .format-btn {
-    transition: none;
-  }
-
-  .language-selector {
-    transition: none;
-  }
-}
-
-/* ========================================
-   Focus States for Accessibility
-   ======================================== */
-.language-selector:focus-visible {
-  outline: 2px solid #89b4fa;
-  outline-offset: 2px;
-}
-
-.format-btn:focus-visible {
-  outline: 2px solid #89b4fa;
-  outline-offset: 2px;
-}
-
-/* ========================================
-   Loading State
-   ======================================== */
-.code-editor-container.loading {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  background: #1e1e2e;
-  color: #cdd6f4;
-  font-size: 14px;
-}
-
-.code-editor-container.loading::after {
-  content: "⏳ Loading Editor...";
-}
-
-/* ========================================
-   Error State
-   ======================================== */
-.code-editor-container.error {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  background: #1e1e2e;
-  color: #f38ba8;
-  font-size: 14px;
-}
-
-.code-editor-container.error::after {
-  content: "❌ Failed to load editor";
-}
-
-/* ========================================
-   Scrollbar for Editor Container
-   ======================================== */
-.code-editor-container ::-webkit-scrollbar {
-  width: 10px;
-  height: 10px;
-}
-
-.code-editor-container ::-webkit-scrollbar-track {
-  background: #1e1e2e;
-}
-
-.code-editor-container ::-webkit-scrollbar-thumb {
-  background: #45475a;
-  border-radius: 5px;
-}
-
-.code-editor-container ::-webkit-scrollbar-thumb:hover {
-  background: #585b70;
-}
-
-/* Light mode scrollbar */
-@media (prefers-color-scheme: light) {
-  .code-editor-container ::-webkit-scrollbar-track {
-    background: #f1f3f4;
-  }
-
-  .code-editor-container ::-webkit-scrollbar-thumb {
-    background: #dadce0;
-  }
-
-  .code-editor-container ::-webkit-scrollbar-thumb:hover {
-    background: #bdc1c6;
-  }
-}
-
-/* ========================================
-   Editor Selection Colors
-   ======================================== */
-.code-editor-container .monaco-editor .selected-text {
-  background: #45475a !important;
-}
-
-.code-editor-container .monaco-editor .view-line span.inline-selected-text {
-  background: #45475a !important;
-}
-
-/* Light mode selection */
-@media (prefers-color-scheme: light) {
-  .code-editor-container .monaco-editor .selected-text {
-    background: #d2e3fc !important;
-  }
-
-  .code-editor-container .monaco-editor .view-line span.inline-selected-text {
-    background: #d2e3fc !important;
-  }
-}
-
-/* ========================================
-   Line Highlight
-   ======================================== */
-.code-editor-container .monaco-editor .view-overlays .current-line {
-  border: none !important;
-  background: rgba(49, 50, 68, 0.5) !important;
-}
-
-/* Light mode line highlight */
-@media (prefers-color-scheme: light) {
-  .code-editor-container .monaco-editor .view-overlays .current-line {
-    background: rgba(232, 240, 254, 0.5) !important;
-  }
-}
-
-/* ========================================
-   Editor Find Widget
-   ======================================== */
-.code-editor-container .monaco-editor .find-widget {
-  background: #1e1e2e !important;
-  border-color: #313244 !important;
-}
-
-.code-editor-container .monaco-editor .find-widget .button {
-  color: #cdd6f4 !important;
-}
-
-/* Light mode find widget */
-@media (prefers-color-scheme: light) {
-  .code-editor-container .monaco-editor .find-widget {
-    background: #ffffff !important;
-    border-color: #dadce0 !important;
-  }
-
-  .code-editor-container .monaco-editor .find-widget .button {
-    color: #202124 !important;
   }
 }
