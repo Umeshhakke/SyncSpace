@@ -14,17 +14,21 @@ const SUPPORTED_LANGUAGES = [
 
 /**
  * CodeEditor Component
- * Wraps Monaco Editor with language selection capabilities.
+ * Wraps Monaco Editor with language selection and theme synchronization capabilities.
  */
 const CodeEditor = ({
   defaultValue = "// Type your code here...",
-  theme = "vs-dark",
+  isDarkMode = true,
+  theme,
   height = "500px",
   width = "100%",
   onMount,
   onChange,
   options = {},
 }) => {
+  // Derive Monaco theme dynamically based on isDarkMode prop
+  const editorTheme = theme || (isDarkMode ? "vs-dark" : "vs");
+
   // Store selected language in React state (default: javascript)
   const [language, setLanguage] = useState("javascript");
 
@@ -61,17 +65,20 @@ const CodeEditor = ({
     }
   };
 
+  // Dynamic styles for dark vs light mode container and toolbar
+  const activeStyles = isDarkMode ? darkStyles : lightStyles;
+
   return (
-    <div className="code-editor-container" style={styles.container}>
-      <div className="code-editor-toolbar" style={styles.toolbar}>
-        <label htmlFor="language-select" style={styles.label}>
+    <div className="code-editor-container" style={activeStyles.container}>
+      <div className="code-editor-toolbar" style={activeStyles.toolbar}>
+        <label htmlFor="language-select" style={activeStyles.label}>
           Language:
         </label>
         <select
           id="language-select"
           value={language}
           onChange={handleLanguageChange}
-          style={styles.select}
+          style={activeStyles.select}
         >
           {SUPPORTED_LANGUAGES.map((lang) => (
             <option key={lang.value} value={lang.value}>
@@ -80,13 +87,13 @@ const CodeEditor = ({
           ))}
         </select>
       </div>
-      <div className="monaco-editor-wrapper" style={styles.editorWrapper}>
+      <div className="monaco-editor-wrapper" style={activeStyles.editorWrapper}>
         <Editor
           height={height}
           width={width}
           language={language}
           defaultValue={defaultValue}
-          theme={theme}
+          theme={editorTheme}
           onMount={handleEditorDidMount}
           onChange={onChange}
           options={{
@@ -102,8 +109,8 @@ const CodeEditor = ({
   );
 };
 
-// Styling for clean, dark-themed responsive toolbar and editor container
-const styles = {
+// Dark Mode Styles
+const darkStyles = {
   container: {
     display: "flex",
     flexDirection: "column",
@@ -133,6 +140,50 @@ const styles = {
     backgroundColor: "#3c3c3c",
     color: "#ffffff",
     border: "1px solid #555555",
+    borderRadius: "4px",
+    padding: "4px 12px",
+    fontSize: "13px",
+    cursor: "pointer",
+    outline: "none",
+    transition: "border-color 0.2s, background-color 0.2s",
+  },
+  editorWrapper: {
+    flex: 1,
+    width: "100%",
+  },
+};
+
+// Light Mode Styles
+const lightStyles = {
+  container: {
+    display: "flex",
+    flexDirection: "column",
+    width: "100%",
+    height: "100%",
+    borderRadius: "8px",
+    overflow: "hidden",
+    boxShadow: "0 4px 12px rgba(0, 0, 0, 0.08)",
+    backgroundColor: "#ffffff",
+    fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+  },
+  toolbar: {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "flex-end",
+    padding: "8px 16px",
+    backgroundColor: "#f3f3f3",
+    borderBottom: "1px solid #e0e0e0",
+    gap: "10px",
+  },
+  label: {
+    color: "#333333",
+    fontSize: "13px",
+    fontWeight: "500",
+  },
+  select: {
+    backgroundColor: "#ffffff",
+    color: "#333333",
+    border: "1px solid #ccc",
     borderRadius: "4px",
     padding: "4px 12px",
     fontSize: "13px",
