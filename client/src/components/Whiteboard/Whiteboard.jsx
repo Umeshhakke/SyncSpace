@@ -1,6 +1,13 @@
 import React, { useEffect, useRef, useState } from "react";
-import { Stage, Layer, Line, Rect, Text } from "react-konva";
+import { Stage, Layer } from "react-konva";
 import Toolbar from "./Toolbar";
+import ShapeRenderer from "./ShapeRenderer";
+import useWhiteboard from "../../hooks/useWhiteboard";
+import {
+  createLine,
+  createRectangle,
+  createText,
+} from "../../utils/shapeFactory";
 import "../../styles/whiteboard.css";
 
 const Whiteboard = () => {
@@ -12,16 +19,21 @@ const Whiteboard = () => {
     height: 0,
   });
 
-  // Drawing state
-  const [lines, setLines] = useState([]);
-  const [isDrawing, setIsDrawing] = useState(false);
-
-  // Rectangle state
-  const [rectangles, setRectangles] = useState([]);
-  const [currentRect, setCurrentRect] = useState(null);
-
-  // Text state
-  const [texts, setTexts] = useState([]);
+  // Use the whiteboard hook
+  const {
+    lines,
+    setLines,
+    rectangles,
+    setRectangles,
+    texts,
+    setTexts,
+    isDrawing,
+    setIsDrawing,
+    currentRect,
+    setCurrentRect,
+    addRemoteShape,
+    clearAllShapes,
+  } = useWhiteboard();
 
   // Tool states
   const [tool, setTool] = useState("pencil");
@@ -48,66 +60,6 @@ const Whiteboard = () => {
     };
   }, []);
 
-  /**
-   * ============================================
-   * addRemoteShape - Add shape from remote user
-   * ============================================
-   * This function accepts a shape object and adds it to the correct state.
-   * Member 4 will call this function when receiving shapes via Socket.IO.
-   *
-   * Shape Format:
-   * Line:    { id, type: "line", points: [], color, strokeWidth }
-   * Rect:    { id, type: "rectangle", x, y, width, height, color, strokeWidth }
-   * Text:    { id, type: "text", x, y, text, color, fontSize }
-   *
-   * @param {Object} shapeData - The shape object to add
-   */
-  const addRemoteShape = (shapeData) => {
-    console.log("📥 Remote shape received:", shapeData);
-
-    switch (shapeData.type) {
-      case "line":
-        setLines((prev) => [...prev, shapeData]);
-        console.log("✅ Line added from remote");
-        break;
-
-      case "rectangle":
-        setRectangles((prev) => [...prev, shapeData]);
-        console.log("✅ Rectangle added from remote");
-        break;
-
-      case "text":
-        setTexts((prev) => [...prev, shapeData]);
-        console.log("✅ Text added from remote");
-        break;
-
-      default:
-        console.warn("⚠️ Unknown shape type:", shapeData.type);
-        break;
-    }
-  };
-
-  /**
-   * ============================================
-   * createShape - Create a new shape with unique ID
-   * ============================================
-   * This function ensures every shape has a unique ID.
-   * Used for local shape creation.
-   *
-   * @param {string} type - "line", "rectangle", or "text"
-   * @param {Object} data - Shape-specific data
-   * @returns {Object} Shape object with unique ID
-   */
-  const createShape = (type, data) => {
-    return {
-      id: crypto.randomUUID
-        ? crypto.randomUUID()
-        : Math.random().toString(36).substr(2, 9),
-      type: type,
-      ...data,
-    };
-  };
-
   // Handle mouse down
   const handleMouseDown = (e) => {
     const stage = stageRef.current;
@@ -127,15 +79,14 @@ const Whiteboard = () => {
 
       const fontSize = Math.max(12, brushSize * 4);
 
-      // Create text shape with unique ID
-      const newText = createShape("text", {
-        x: point.x,
-        y: point.y,
-        text: value.trim(),
-        fontSize: fontSize,
-        color: color,
-        fontFamily: "Arial, sans-serif",
-      });
+      // Create text shape using factory
+      const newText = createText(
+        point.x,
+        point.y,
+        value.trim(),
+        color,
+        fontSize,
+      );
 
       setTexts((prev) => [...prev, newText]);
       console.log("📝 Text created locally:", newText);
@@ -144,16 +95,8 @@ const Whiteboard = () => {
 
     // Handle Rectangle Tool
     if (tool === "rectangle") {
-      // Create rectangle shape with unique ID (will be updated on mouse move)
-      const newRect = createShape("rectangle", {
-        x: point.x,
-        y: point.y,
-        width: 0,
-        height: 0,
-        color: color,
-        strokeWidth: brushSize,
-        fill: "transparent",
-      });
+      // Create rectangle shape using factory
+      const newRect = createRectangle(point.x, point.y, 0, 0, color, brushSize);
 
       setCurrentRect(newRect);
       return;
@@ -162,14 +105,13 @@ const Whiteboard = () => {
     // Handle Pencil/Eraser
     setIsDrawing(true);
 
-    // Create line shape with unique ID
-    const newLine = createShape("line", {
-      color: tool === "eraser" ? "#ffffff" : color,
-      strokeWidth: tool === "eraser" ? brushSize * 2 : brushSize,
-      points: [point.x, point.y],
-      globalCompositeOperation:
-        tool === "eraser" ? "destination-out" : "source-over",
-    });
+    // Create line shape using factory
+    const newLine = createLine(
+      [point.x, point.y],
+      tool === "eraser" ? "#ffffff" : color,
+      tool === "eraser" ? brushSize * 2 : brushSize,
+      tool === "eraser" ? "destination-out" : "source-over",
+    );
 
     setLines((prev) => [...prev, newLine]);
   };
@@ -240,37 +182,9 @@ const Whiteboard = () => {
 
   // Clear canvas
   const clearCanvas = () => {
-    setLines([]);
-    setRectangles([]);
-    setTexts([]);
-    setCurrentRect(null);
+    clearAllShapes();
     console.log("🗑️ Canvas Cleared");
   };
-
-  // ============================================
-  // TEST: Simulate remote shape (Remove after testing)
-  // ============================================
-  useEffect(() => {
-    // This simulates receiving a shape from another user
-    // Uncomment to test remote shape addition
-    // const testRemoteShape = {
-    //   id: crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).substr(2, 9),
-    //   type: 'text',
-    //   x: 200,
-    //   y: 150,
-    //   text: '👋 Remote User',
-    //   color: '#ef4444',
-    //   fontSize: 24,
-    //   fontFamily: 'Arial, sans-serif',
-    // };
-    //
-    // // Add the remote shape after 2 seconds
-    // const timer = setTimeout(() => {
-    //   addRemoteShape(testRemoteShape);
-    // }, 2000);
-    //
-    // return () => clearTimeout(timer);
-  }, []);
 
   return (
     <div className="whiteboard-container">
@@ -306,66 +220,24 @@ const Whiteboard = () => {
             }}
           >
             <Layer>
-              {/* Render Lines */}
+              {/* Render Lines using ShapeRenderer */}
               {lines.map((line) => (
-                <Line
-                  key={line.id}
-                  points={line.points}
-                  stroke={line.color}
-                  strokeWidth={line.strokeWidth}
-                  lineCap="round"
-                  lineJoin="round"
-                  tension={0.5}
-                  globalCompositeOperation={
-                    line.globalCompositeOperation || "source-over"
-                  }
-                  hitStrokeWidth={0}
-                  listening={false}
-                />
+                <ShapeRenderer key={line.id} shape={line} />
               ))}
 
-              {/* Render Rectangles */}
+              {/* Render Rectangles using ShapeRenderer */}
               {rectangles.map((rect) => (
-                <Rect
-                  key={rect.id}
-                  x={rect.x}
-                  y={rect.y}
-                  width={rect.width}
-                  height={rect.height}
-                  stroke={rect.color}
-                  strokeWidth={rect.strokeWidth || 2}
-                  fill={rect.fill || "transparent"}
-                  listening={false}
-                />
+                <ShapeRenderer key={rect.id} shape={rect} />
               ))}
 
-              {/* Render Texts */}
+              {/* Render Texts using ShapeRenderer */}
               {texts.map((text) => (
-                <Text
-                  key={text.id}
-                  x={text.x}
-                  y={text.y}
-                  text={text.text}
-                  fontSize={text.fontSize}
-                  fill={text.color}
-                  fontFamily={text.fontFamily || "Arial, sans-serif"}
-                  listening={false}
-                />
+                <ShapeRenderer key={text.id} shape={text} />
               ))}
 
               {/* Render Current Rectangle (Preview) */}
               {currentRect && (
-                <Rect
-                  x={currentRect.x}
-                  y={currentRect.y}
-                  width={currentRect.width}
-                  height={currentRect.height}
-                  stroke="#2563eb"
-                  strokeWidth={2}
-                  fill="rgba(37, 99, 235, 0.1)"
-                  dash={[6, 4]}
-                  listening={false}
-                />
+                <ShapeRenderer shape={currentRect} isPreview={true} />
               )}
             </Layer>
           </Stage>
