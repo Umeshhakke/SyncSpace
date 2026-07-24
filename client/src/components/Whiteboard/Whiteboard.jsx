@@ -28,7 +28,7 @@ const Whiteboard = () => {
   const [color, setColor] = useState("#000000");
   const [brushSize, setBrushSize] = useState(5);
 
-  // Handle window resize for responsive stage
+  // Handle window resize
   useEffect(() => {
     const updateSize = () => {
       if (!containerRef.current) return;
@@ -40,13 +40,9 @@ const Whiteboard = () => {
       });
     };
 
-    // Initial size update
     updateSize();
-
-    // Add resize listener
     window.addEventListener("resize", updateSize);
 
-    // Cleanup
     return () => {
       window.removeEventListener("resize", updateSize);
     };
@@ -69,7 +65,7 @@ const Whiteboard = () => {
         return;
       }
 
-      const fontSize = Math.max(12, brushSize * 4); // Brush size affects font size
+      const fontSize = Math.max(12, brushSize * 4);
       const newText = {
         id: crypto.randomUUID
           ? crypto.randomUUID()
@@ -80,8 +76,6 @@ const Whiteboard = () => {
         fontSize: fontSize,
         fill: color,
         fontFamily: "Arial, sans-serif",
-        fontStyle: "normal",
-        fontWeight: "normal",
       };
 
       setTexts((prev) => [...prev, newText]);
@@ -102,7 +96,6 @@ const Whiteboard = () => {
         stroke: color,
         strokeWidth: brushSize,
         fill: "transparent",
-        cornerRadius: 0,
       });
       return;
     }
@@ -133,7 +126,6 @@ const Whiteboard = () => {
     const point = stage.getPointerPosition();
     if (!point) return;
 
-    // Handle Rectangle Drawing
     if (tool === "rectangle") {
       if (!currentRect) return;
 
@@ -145,7 +137,6 @@ const Whiteboard = () => {
       return;
     }
 
-    // Handle Pencil/Eraser Drawing
     if (!isDrawing) return;
 
     setLines((prev) => {
@@ -165,7 +156,6 @@ const Whiteboard = () => {
   const handleMouseUp = () => {
     if (tool === "rectangle") {
       if (currentRect) {
-        // Only save if rectangle has size
         if (
           Math.abs(currentRect.width) > 5 &&
           Math.abs(currentRect.height) > 5
@@ -264,7 +254,6 @@ const Whiteboard = () => {
                   stroke={rect.stroke}
                   strokeWidth={rect.strokeWidth || 2}
                   fill={rect.fill || "transparent"}
-                  cornerRadius={rect.cornerRadius || 0}
                   listening={false}
                 />
               ))}
@@ -279,8 +268,6 @@ const Whiteboard = () => {
                   fontSize={text.fontSize}
                   fill={text.fill}
                   fontFamily={text.fontFamily || "Arial, sans-serif"}
-                  fontStyle={text.fontStyle || "normal"}
-                  fontWeight={text.fontWeight || "normal"}
                   listening={false}
                 />
               ))}
@@ -296,7 +283,6 @@ const Whiteboard = () => {
                   strokeWidth={2}
                   fill="rgba(37, 99, 235, 0.1)"
                   dash={[6, 4]}
-                  cornerRadius={0}
                   listening={false}
                 />
               )}

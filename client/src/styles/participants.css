@@ -13,9 +13,7 @@
   flex-direction: column;
 }
 
-/* ========================================
-   PARTICIPANT HEADER
-   ======================================== */
+/* Participant Header */
 .participant-header {
   display: flex;
   justify-content: space-between;
@@ -41,9 +39,7 @@
   font-weight: 600;
 }
 
-/* ========================================
-   PARTICIPANT LIST
-   ======================================== */
+/* Participant List */
 .participant-list {
   flex: 1;
   display: flex;
@@ -52,9 +48,7 @@
   overflow-y: auto;
 }
 
-/* ========================================
-   EMPTY STATE
-   ======================================== */
+/* Empty State */
 .participant-empty {
   display: flex;
   flex-direction: column;
@@ -84,9 +78,7 @@
   margin-top: 4px;
 }
 
-/* ========================================
-   PARTICIPANT CARD
-   ======================================== */
+/* Participant Card */
 .participant-card {
   display: flex;
   align-items: center;
@@ -108,13 +100,7 @@
   border-color: #93c5fd;
 }
 
-.participant-card.current-user:hover {
-  border-color: #60a5fa;
-}
-
-/* ========================================
-   PARTICIPANT AVATAR
-   ======================================== */
+/* Participant Avatar */
 .participant-avatar {
   width: 32px;
   height: 32px;
@@ -128,9 +114,7 @@
   flex-shrink: 0;
 }
 
-/* ========================================
-   PARTICIPANT INFO
-   ======================================== */
+/* Participant Info */
 .participant-info {
   flex: 1;
   display: flex;
@@ -171,9 +155,7 @@
   color: #94a3b8;
 }
 
-/* ========================================
-   PARTICIPANT FOOTER
-   ======================================== */
+/* Participant Footer */
 .participant-footer {
   margin-top: 12px;
   padding-top: 12px;
@@ -192,9 +174,7 @@
   color: #94a3b8;
 }
 
-/* ========================================
-   SCROLLBAR STYLING
-   ======================================== */
+/* Scrollbar */
 .participant-list::-webkit-scrollbar {
   width: 4px;
 }
@@ -213,11 +193,7 @@
   background: #94a3b8;
 }
 
-/* ========================================
-   RESPONSIVE DESIGN
-   ======================================== */
-
-/* Tablet */
+/* Responsive */
 @media (max-width: 768px) {
   .participant-sidebar {
     padding: 12px;
@@ -242,17 +218,8 @@
   .participant-name {
     font-size: 13px;
   }
-
-  .participant-empty {
-    padding: 20px;
-  }
-
-  .empty-icon {
-    font-size: 32px;
-  }
 }
 
-/* Mobile */
 @media (max-width: 480px) {
   .participant-sidebar {
     padding: 8px;
@@ -262,11 +229,6 @@
 
   .participant-header h3 {
     font-size: 13px;
-  }
-
-  .participant-count {
-    font-size: 11px;
-    padding: 1px 8px;
   }
 
   .participant-card {
@@ -282,92 +244,5 @@
 
   .participant-name {
     font-size: 12px;
-  }
-
-  .current-user-badge {
-    font-size: 10px;
-    padding: 1px 6px;
-  }
-
-  .participant-status {
-    font-size: 10px;
-  }
-
-  .participant-empty p {
-    font-size: 12px;
-  }
-
-  .empty-sub {
-    font-size: 11px;
-  }
-}
-
-/* ========================================
-   DARK MODE SUPPORT
-   ======================================== */
-@media (prefers-color-scheme: dark) {
-  .participant-sidebar {
-    background: #1e293b;
-    border-top-color: #334155;
-  }
-
-  .participant-header {
-    border-bottom-color: #334155;
-  }
-
-  .participant-header h3 {
-    color: #e2e8f0;
-  }
-
-  .participant-count {
-    background: #334155;
-    color: #94a3b8;
-  }
-
-  .participant-card {
-    background: #0f172a;
-    border-color: #334155;
-  }
-
-  .participant-card:hover {
-    border-color: #475569;
-  }
-
-  .participant-card.current-user {
-    background: #1e3a5f;
-    border-color: #3b82f6;
-  }
-
-  .participant-name {
-    color: #e2e8f0;
-  }
-
-  .current-user-badge {
-    background: #1e3a5f;
-    color: #60a5fa;
-  }
-
-  .participant-empty p {
-    color: #94a3b8;
-  }
-
-  .participant-footer {
-    border-top-color: #334155;
-  }
-
-  .room-share span {
-    color: #64748b;
-  }
-
-  .participant-list::-webkit-scrollbar-track {
-    background: #1e293b;
-  }
-
-  .participant-list::-webkit-scrollbar-thumb {
-    background: #475569;
-  }
-
-  .participant-list::-webkit-scrollbar-thumb:hover {
-    background: #64748b;
   }
 }

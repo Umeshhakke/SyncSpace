@@ -10,66 +10,75 @@ const Toolbar = ({
   setBrushSize,
   clearCanvas,
 }) => {
+  const getToolName = () => {
+    switch (tool) {
+      case "pencil":
+        return "✏️ Pen";
+      case "rectangle":
+        return "▭ Rectangle";
+      case "text":
+        return "📝 Text";
+      case "eraser":
+        return "🧹 Eraser";
+      default:
+        return "✏️ Pen";
+    }
+  };
+
   return (
     <div className="toolbar">
-      {/* Pencil Button */}
-      <button
-        className={`toolbar-btn toolbar-btn-primary ${tool === "pencil" ? "active" : ""}`}
-        onClick={() => {
-          setTool("pencil");
-          console.log("✏️ Pencil Selected");
-        }}
-        title="Pencil Tool"
-      >
-        <span className="toolbar-icon">✏️</span>
-        <span className="toolbar-label">Pencil</span>
-      </button>
+      {/* Tool Selection */}
+      <div className="toolbar-section">
+        <button
+          className={`toolbar-btn ${tool === "pencil" ? "active" : ""}`}
+          onClick={() => {
+            setTool("pencil");
+            console.log("✏️ Pen Tool Selected");
+          }}
+          title="Pen Tool"
+        >
+          ✏️ Pen
+        </button>
 
-      {/* Rectangle Button */}
-      <button
-        className={`toolbar-btn toolbar-btn-primary ${tool === "rectangle" ? "active" : ""}`}
-        onClick={() => {
-          setTool("rectangle");
-          console.log("📐 Rectangle Tool Selected");
-        }}
-        title="Rectangle Tool"
-      >
-        <span className="toolbar-icon">📐</span>
-        <span className="toolbar-label">Rectangle</span>
-      </button>
+        <button
+          className={`toolbar-btn ${tool === "rectangle" ? "active" : ""}`}
+          onClick={() => {
+            setTool("rectangle");
+            console.log("▭ Rectangle Tool Selected");
+          }}
+          title="Rectangle Tool"
+        >
+          ▭ Rectangle
+        </button>
 
-      {/* Text Button */}
-      <button
-        className={`toolbar-btn toolbar-btn-primary ${tool === "text" ? "active" : ""}`}
-        onClick={() => {
-          setTool("text");
-          console.log("📝 Text Tool Selected");
-        }}
-        title="Text Tool"
-      >
-        <span className="toolbar-icon">📝</span>
-        <span className="toolbar-label">Text</span>
-      </button>
+        <button
+          className={`toolbar-btn ${tool === "text" ? "active" : ""}`}
+          onClick={() => {
+            setTool("text");
+            console.log("📝 Text Tool Selected");
+          }}
+          title="Text Tool"
+        >
+          📝 Text
+        </button>
 
-      {/* Eraser Button */}
-      <button
-        className={`toolbar-btn toolbar-btn-secondary ${tool === "eraser" ? "active" : ""}`}
-        onClick={() => {
-          setTool("eraser");
-          console.log("🧹 Eraser Selected");
-        }}
-        title="Eraser Tool"
-      >
-        <span className="toolbar-icon">🧹</span>
-        <span className="toolbar-label">Eraser</span>
-      </button>
+        <button
+          className={`toolbar-btn ${tool === "eraser" ? "active" : ""}`}
+          onClick={() => {
+            setTool("eraser");
+            console.log("🧹 Eraser Tool Selected");
+          }}
+          title="Eraser Tool"
+        >
+          🧹 Eraser
+        </button>
+      </div>
 
-      {/* Divider */}
       <div className="toolbar-divider"></div>
 
       {/* Color Picker */}
-      <div className="toolbar-group">
-        <label className="toolbar-label" title="Choose Color">
+      <div className="toolbar-section">
+        <label className="toolbar-label" title="Stroke Color">
           🎨
           <input
             type="color"
@@ -84,18 +93,17 @@ const Toolbar = ({
         </label>
       </div>
 
-      {/* Divider */}
       <div className="toolbar-divider"></div>
 
-      {/* Brush Size Slider */}
-      <div className="toolbar-group">
-        <label className="toolbar-label" title="Brush Size">
+      {/* Brush Size */}
+      <div className="toolbar-section toolbar-slider">
+        <label className="toolbar-label" title="Stroke Width">
           📏
           <input
             type="range"
             className="brush-slider"
             min="1"
-            max="30"
+            max="20"
             value={brushSize}
             onChange={(e) => {
               setBrushSize(Number(e.target.value));
@@ -106,7 +114,6 @@ const Toolbar = ({
         </label>
       </div>
 
-      {/* Divider */}
       <div className="toolbar-divider"></div>
 
       {/* Clear Button */}
@@ -118,9 +125,14 @@ const Toolbar = ({
         }}
         title="Clear Canvas"
       >
-        <span className="toolbar-icon">🗑️</span>
-        <span className="toolbar-label">Clear</span>
+        🗑️ Clear
       </button>
+
+      {/* Active Tool Display */}
+      <div className="toolbar-active-tool">
+        <span className="active-tool-label">Active:</span>
+        <span className="active-tool-name">{getToolName()}</span>
+      </div>
     </div>
   );
 };
