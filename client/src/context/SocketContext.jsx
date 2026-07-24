@@ -1,3 +1,4 @@
+// client/src/context/SocketContext.jsx
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import io from 'socket.io-client';
 
@@ -14,7 +15,10 @@ export const SocketProvider = ({ children }) => {
   const [isConnected, setIsConnected] = useState(false);
 
   useEffect(() => {
-    const newSocket = io('http://localhost:5000', {
+    // ✅ Read from environment variable with fallback
+    const serverUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+
+    const newSocket = io(serverUrl, {
       auth: { token: 'demo123' },
     });
 
