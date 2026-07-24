@@ -1,7 +1,7 @@
 {
-  "name": "whiteboard-app",
+  "name": "syncspace-client",
   "private": true,
-  "version": "0.0.0",
+  "version": "1.0.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -9,14 +9,10 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "konva": "^9.2.0",
+    "konva": "^9.3.22",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
-    "react-konva": "^18.2.10",
-    "react-router-dom": "^7.18.1",
-    "socket.io-client": "^4.8.3",
-    "y-websocket": "^3.0.0",
-    "yjs": "^13.6.31"
+    "react-konva": "^18.2.16"
   },
   "devDependencies": {
     "@types/react": "^18.2.43",

@@ -1,44 +1,63 @@
 import React from "react";
 import "../../styles/whiteboard.css";
 
-const Toolbar = () => {
-  // Handler functions with console logs
-  const handlePencil = () => {
-    console.log("✏️ Pencil Selected");
-  };
-
-  const handleEraser = () => {
-    console.log("🧹 Eraser Selected");
-  };
-
-  const handleClear = () => {
-    console.log("🗑️ Canvas Cleared");
-  };
-
-  const handleColor = (e) => {
-    console.log("🎨 Color Changed:", e.target.value);
-  };
-
-  const handleBrush = (e) => {
-    console.log("📏 Brush Size:", e.target.value);
-  };
-
+const Toolbar = ({
+  tool,
+  setTool,
+  color,
+  setColor,
+  brushSize,
+  setBrushSize,
+  clearCanvas,
+}) => {
   return (
     <div className="toolbar">
       {/* Pencil Button */}
       <button
-        className="toolbar-btn toolbar-btn-primary"
-        onClick={handlePencil}
+        className={`toolbar-btn toolbar-btn-primary ${tool === "pencil" ? "active" : ""}`}
+        onClick={() => {
+          setTool("pencil");
+          console.log("✏️ Pencil Selected");
+        }}
         title="Pencil Tool"
       >
         <span className="toolbar-icon">✏️</span>
         <span className="toolbar-label">Pencil</span>
       </button>
 
+      {/* Rectangle Button */}
+      <button
+        className={`toolbar-btn toolbar-btn-primary ${tool === "rectangle" ? "active" : ""}`}
+        onClick={() => {
+          setTool("rectangle");
+          console.log("📐 Rectangle Tool Selected");
+        }}
+        title="Rectangle Tool"
+      >
+        <span className="toolbar-icon">📐</span>
+        <span className="toolbar-label">Rectangle</span>
+      </button>
+
+      {/* Text Button */}
+      <button
+        className={`toolbar-btn toolbar-btn-primary ${tool === "text" ? "active" : ""}`}
+        onClick={() => {
+          setTool("text");
+          console.log("📝 Text Tool Selected");
+        }}
+        title="Text Tool"
+      >
+        <span className="toolbar-icon">📝</span>
+        <span className="toolbar-label">Text</span>
+      </button>
+
       {/* Eraser Button */}
       <button
-        className="toolbar-btn toolbar-btn-secondary"
-        onClick={handleEraser}
+        className={`toolbar-btn toolbar-btn-secondary ${tool === "eraser" ? "active" : ""}`}
+        onClick={() => {
+          setTool("eraser");
+          console.log("🧹 Eraser Selected");
+        }}
         title="Eraser Tool"
       >
         <span className="toolbar-icon">🧹</span>
@@ -55,8 +74,12 @@ const Toolbar = () => {
           <input
             type="color"
             className="color-picker"
-            defaultValue="#000000"
-            onChange={handleColor}
+            value={color}
+            onChange={(e) => {
+              setColor(e.target.value);
+              console.log("🎨 Color Changed:", e.target.value);
+            }}
+            disabled={tool === "eraser"}
           />
         </label>
       </div>
@@ -72,11 +95,14 @@ const Toolbar = () => {
             type="range"
             className="brush-slider"
             min="1"
-            max="20"
-            defaultValue="5"
-            onChange={handleBrush}
+            max="30"
+            value={brushSize}
+            onChange={(e) => {
+              setBrushSize(Number(e.target.value));
+              console.log("📏 Brush Size:", e.target.value);
+            }}
           />
-          <span className="brush-size-value">5</span>
+          <span className="brush-size-value">{brushSize}px</span>
         </label>
       </div>
 
@@ -86,7 +112,10 @@ const Toolbar = () => {
       {/* Clear Button */}
       <button
         className="toolbar-btn toolbar-btn-danger"
-        onClick={handleClear}
+        onClick={() => {
+          clearCanvas();
+          console.log("🗑️ Canvas Cleared");
+        }}
         title="Clear Canvas"
       >
         <span className="toolbar-icon">🗑️</span>

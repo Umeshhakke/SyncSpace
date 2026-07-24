@@ -4,6 +4,8 @@ import App from "./App.jsx";
 import "./styles/global.css";
 import "./styles/layout.css";
 import "./styles/whiteboard.css";
+import "./styles/header.css";
+import "./styles/participants.css";
 
 ReactDOM.createRoot(document.getElementById("root")).render(
   <React.StrictMode>
