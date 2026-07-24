@@ -13,9 +13,22 @@ const SUPPORTED_LANGUAGES = [
 ];
 
 /**
+ * Generate a deterministic hex color based on Yjs clientID
+ */
+const getClientColor = (clientId) => {
+  const colors = [
+    "#e91e63", "#9c27b0", "#673ab7", "#3f51b5",
+    "#2196f3", "#00bcd4", "#009688", "#4caf50",
+    "#ff9800", "#ff5722", "#795548", "#607d8b"
+  ];
+  return colors[Math.abs(Number(clientId)) % colors.length];
+};
+
+/**
  * CodeEditor Component
  * Responsive Monaco Editor component with full panel layout, dynamic theme,
- * language selection, metadata sync, and Yjs real-time collaborative text editing (Y.Text).
+ * language selection, metadata sync, Yjs collaborative editing (Y.Text),
+ * and real-time remote cursor & selection synchronization via Yjs Awareness API.
  */
 const CodeEditor = ({
   defaultValue = "// Type your code here...",
@@ -24,8 +37,11 @@ const CodeEditor = ({
   height = "100%",
   width = "100%",
   doc,
+  provider,
+  awareness: awarenessProp,
   metaMap: metaMapProp,
   codeText: codeTextProp,
+  username = "Anonymous",
   onMount,
   onChange,
   options = {},
@@ -43,11 +59,15 @@ const CodeEditor = ({
   const editorRef = useRef(null);
   const monacoRef = useRef(null);
 
-  // PART 6: Synchronization flag ref to prevent infinite echo loops between local & remote changes
+  // Ref to track active Monaco decoration IDs for remote cursors & selections
+  const decorationIdsRef = useRef([]);
+
+  // Synchronization flag ref to prevent infinite echo loops between local & remote text changes
   const isUpdatingRef = useRef(false);
 
-  // Obtain Yjs shared map for editor metadata ("meta")
+  // Obtain Yjs shared objects
   const metaMap = metaMapProp || (doc ? doc.getMap("meta") : null);
+  const awareness = awarenessProp || provider?.awareness || (doc ? provider?.awareness : null);
 
   /**
    * Callback fired when Monaco Editor finishes mounting
@@ -134,9 +154,8 @@ const CodeEditor = ({
     };
   }, [metaMap]);
 
-  // PARTS 3, 4, 5, 6, 7: Real-time collaborative code text editing via Y.Text ("code")
+  // Real-time collaborative code text editing via Y.Text ("code")
   useEffect(() => {
-    // PART 2: Obtain Y.Text instance from props or doc
     const activeCodeText = codeTextProp || (doc ? doc.getText("code") : null);
     if (!activeCodeText || !editorRef.current || !isEditorReady) return;
 
@@ -144,7 +163,7 @@ const CodeEditor = ({
     const model = editor.getModel();
     if (!model) return;
 
-    // PART 3: Initialize Monaco from Y.Text if codeText already contains content
+    // Initialize Monaco from Y.Text if codeText already contains content
     const initialText = activeCodeText.toString();
     if (initialText.length > 0 && model.getValue() !== initialText) {
       isUpdatingRef.current = true;
@@ -152,20 +171,17 @@ const CodeEditor = ({
       isUpdatingRef.current = false;
     }
 
-    // PART 5: Remote Synchronization (Y.Text observer -> Monaco Editor)
+    // Remote Synchronization (Y.Text observer -> Monaco Editor)
     const handleCodeTextChange = (event) => {
-      // PART 6: Skip update if change originated locally
       if (isUpdatingRef.current) return;
 
       const remoteText = activeCodeText.toString();
       const currentLocalText = model.getValue();
 
-      // PART 6: If Monaco already contains identical content, skip update
       if (currentLocalText === remoteText) return;
 
       isUpdatingRef.current = true;
 
-      // Execute edits in Monaco to preserve undo stack and cursor position where possible
       editor.executeEdits("yjs-sync", [
         {
           range: model.getFullModelRange(),
@@ -177,23 +193,19 @@ const CodeEditor = ({
       isUpdatingRef.current = false;
     };
 
-    // Observe changes on Y.Text instance
     activeCodeText.observe(handleCodeTextChange);
 
-    // PART 4: Local Typing Synchronization (Monaco Editor content change -> Y.Text)
+    // Local Typing Synchronization (Monaco Editor content change -> Y.Text)
     const contentChangeListener = editor.onDidChangeModelContent(() => {
-      // PART 6: Skip writing back if update originated from Y.Text observer
       if (isUpdatingRef.current) return;
 
       const localText = model.getValue();
       const currentYText = activeCodeText.toString();
 
-      // PART 6: Before updating, compare editor value with Y.Text content
       if (localText === currentYText) return;
 
       isUpdatingRef.current = true;
 
-      // Synchronize entire editor value into Y.Text using Y.Doc transaction
       const targetDoc = doc || activeCodeText.doc;
       if (targetDoc) {
         targetDoc.transact(() => {
@@ -206,14 +218,162 @@ const CodeEditor = ({
       }
 
       isUpdatingRef.current = false;
-    };
+    });
 
-    // PART 7: Cleanup Monaco listeners and Yjs observers on component unmount
     return () => {
       activeCodeText.unobserve(handleCodeTextChange);
       contentChangeListener.dispose();
     };
   }, [doc, codeTextProp, isEditorReady]);
+
+  // PHASE 6: Real-time Remote Cursor & Selection Synchronization using Yjs Awareness API
+  useEffect(() => {
+    if (!awareness || !editorRef.current || !monacoRef.current || !isEditorReady) return;
+
+    const editor = editorRef.current;
+    const monaco = monacoRef.current;
+    const localClientId = doc?.clientID || awareness.clientID;
+
+    // 1. Broadcast local cursor movement and text selection to Yjs Awareness
+    const cursorSelectionListener = editor.onDidChangeCursorSelection((e) => {
+      const selection = e.selection;
+      awareness.setLocalStateField("cursor", {
+        lineNumber: selection.positionLineNumber,
+        column: selection.positionColumn,
+        selectionStart: {
+          lineNumber: selection.startLineNumber,
+          column: selection.startColumn,
+        },
+        selectionEnd: {
+          lineNumber: selection.endLineNumber,
+          column: selection.endColumn,
+        },
+        username: username || "Anonymous",
+      });
+    });
+
+    // Dynamic style element tag to inject unique client cursor colors into document head
+    let styleElement = document.getElementById("yjs-monaco-cursor-styles");
+    if (!styleElement) {
+      styleElement = document.createElement("style");
+      styleElement.id = "yjs-monaco-cursor-styles";
+      document.head.appendChild(styleElement);
+    }
+
+    // 2. Render remote cursors and text selection highlights in Monaco
+    const updateRemoteCursors = () => {
+      const states = awareness.getStates();
+      const newDecorations = [];
+      let dynamicCSS = "";
+
+      states.forEach((state, clientId) => {
+        // Ignore local client
+        if (clientId === localClientId) return;
+
+        const cursorState = state.cursor;
+        if (!cursorState) return;
+
+        const userColor = getClientColor(clientId);
+        const remoteName = cursorState.username || `User ${clientId}`;
+
+        // Dynamic CSS classes for remote cursor caret and selection background
+        const cursorClassName = `yjs-cursor-${clientId}`;
+        const selectionClassName = `yjs-selection-${clientId}`;
+
+        dynamicCSS += `
+          .${cursorClassName} {
+            position: absolute;
+            border-left: 2px solid ${userColor};
+            border-right: none;
+            box-sizing: border-box;
+            height: 100%;
+          }
+          .${cursorClassName}::after {
+            content: "${remoteName}";
+            position: absolute;
+            top: -18px;
+            left: -2px;
+            background-color: ${userColor};
+            color: #ffffff;
+            font-size: 10px;
+            font-weight: bold;
+            padding: 1px 4px;
+            border-radius: 3px;
+            white-space: nowrap;
+            pointer-events: none;
+            z-index: 10;
+          }
+          .${selectionClassName} {
+            background-color: ${userColor}33;
+          }
+        `;
+
+        const { lineNumber, column, selectionStart, selectionEnd } = cursorState;
+
+        // Render Selection Range Highlight if text selection exists
+        if (
+          selectionStart &&
+          selectionEnd &&
+          (selectionStart.lineNumber !== selectionEnd.lineNumber ||
+            selectionStart.column !== selectionEnd.column)
+        ) {
+          newDecorations.push({
+            range: new monaco.Range(
+              selectionStart.lineNumber,
+              selectionStart.column,
+              selectionEnd.lineNumber,
+              selectionEnd.column
+            ),
+            options: {
+              className: selectionClassName,
+              isWholeLine: false,
+            },
+          });
+        }
+
+        // Render Remote Cursor Caret Indicator
+        if (lineNumber && column) {
+          newDecorations.push({
+            range: new monaco.Range(lineNumber, column, lineNumber, column),
+            options: {
+              className: cursorClassName,
+              beforeContentClassName: undefined,
+            },
+          });
+        }
+      });
+
+      // Update dynamic style sheet rules
+      styleElement.textContent = dynamicCSS;
+
+      // Update Monaco decorations atomically replacing old decorations
+      decorationIdsRef.current = editor.deltaDecorations(
+        decorationIdsRef.current,
+        newDecorations
+      );
+    };
+
+    // Observe changes on Yjs awareness instance
+    awareness.on("change", updateRemoteCursors);
+    updateRemoteCursors();
+
+    // 3. Cleanup listeners and decorations on unmount or room leave
+    return () => {
+      cursorSelectionListener.dispose();
+      awareness.off("change", updateRemoteCursors);
+
+      // Remove local awareness state
+      awareness.setLocalStateField("cursor", null);
+
+      // Remove all Monaco remote cursor decorations
+      if (editorRef.current) {
+        decorationIdsRef.current = editorRef.current.deltaDecorations(
+          decorationIdsRef.current,
+          []
+        );
+      }
+    };
+  }, [awareness, doc, username, isEditorReady]);
 
   // Dynamic styles for dark vs light mode container and toolbar
   const activeStyles = isDarkMode ? darkStyles : lightStyles;
