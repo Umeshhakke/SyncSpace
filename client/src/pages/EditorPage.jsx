@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useLocation, useNavigate } from 'react-router-dom';
 import { useSocket } from '../context/SocketContext';
-import Whiteboard from '../components/whiteboard/Whiteboard';  // ✅ Default import
+import Whiteboard from '../components/Whiteboard/Whiteboard';  // ✅ Default import
 
 // Code Editor Placeholder (Member 4 will replace this)
 const CodeEditorPlaceholder = ({ roomId, username, isDarkMode }) => (
