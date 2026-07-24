@@ -48,6 +48,66 @@ const Whiteboard = () => {
     };
   }, []);
 
+  /**
+   * ============================================
+   * addRemoteShape - Add shape from remote user
+   * ============================================
+   * This function accepts a shape object and adds it to the correct state.
+   * Member 4 will call this function when receiving shapes via Socket.IO.
+   *
+   * Shape Format:
+   * Line:    { id, type: "line", points: [], color, strokeWidth }
+   * Rect:    { id, type: "rectangle", x, y, width, height, color, strokeWidth }
+   * Text:    { id, type: "text", x, y, text, color, fontSize }
+   *
+   * @param {Object} shapeData - The shape object to add
+   */
+  const addRemoteShape = (shapeData) => {
+    console.log("📥 Remote shape received:", shapeData);
+
+    switch (shapeData.type) {
+      case "line":
+        setLines((prev) => [...prev, shapeData]);
+        console.log("✅ Line added from remote");
+        break;
+
+      case "rectangle":
+        setRectangles((prev) => [...prev, shapeData]);
+        console.log("✅ Rectangle added from remote");
+        break;
+
+      case "text":
+        setTexts((prev) => [...prev, shapeData]);
+        console.log("✅ Text added from remote");
+        break;
+
+      default:
+        console.warn("⚠️ Unknown shape type:", shapeData.type);
+        break;
+    }
+  };
+
+  /**
+   * ============================================
+   * createShape - Create a new shape with unique ID
+   * ============================================
+   * This function ensures every shape has a unique ID.
+   * Used for local shape creation.
+   *
+   * @param {string} type - "line", "rectangle", or "text"
+   * @param {Object} data - Shape-specific data
+   * @returns {Object} Shape object with unique ID
+   */
+  const createShape = (type, data) => {
+    return {
+      id: crypto.randomUUID
+        ? crypto.randomUUID()
+        : Math.random().toString(36).substr(2, 9),
+      type: type,
+      ...data,
+    };
+  };
+
   // Handle mouse down
   const handleMouseDown = (e) => {
     const stage = stageRef.current;
@@ -66,54 +126,50 @@ const Whiteboard = () => {
       }
 
       const fontSize = Math.max(12, brushSize * 4);
-      const newText = {
-        id: crypto.randomUUID
-          ? crypto.randomUUID()
-          : Math.random().toString(36).substr(2, 9),
+
+      // Create text shape with unique ID
+      const newText = createShape("text", {
         x: point.x,
         y: point.y,
         text: value.trim(),
         fontSize: fontSize,
-        fill: color,
+        color: color,
         fontFamily: "Arial, sans-serif",
-      };
+      });
 
       setTexts((prev) => [...prev, newText]);
-      console.log("📝 Text added:", newText);
+      console.log("📝 Text created locally:", newText);
       return;
     }
 
     // Handle Rectangle Tool
     if (tool === "rectangle") {
-      setCurrentRect({
-        id: crypto.randomUUID
-          ? crypto.randomUUID()
-          : Math.random().toString(36).substr(2, 9),
+      // Create rectangle shape with unique ID (will be updated on mouse move)
+      const newRect = createShape("rectangle", {
         x: point.x,
         y: point.y,
         width: 0,
         height: 0,
-        stroke: color,
+        color: color,
         strokeWidth: brushSize,
         fill: "transparent",
       });
+
+      setCurrentRect(newRect);
       return;
     }
 
     // Handle Pencil/Eraser
     setIsDrawing(true);
 
-    const newLine = {
-      id: crypto.randomUUID
-        ? crypto.randomUUID()
-        : Math.random().toString(36).substr(2, 9),
-      tool: tool,
+    // Create line shape with unique ID
+    const newLine = createShape("line", {
       color: tool === "eraser" ? "#ffffff" : color,
       strokeWidth: tool === "eraser" ? brushSize * 2 : brushSize,
       points: [point.x, point.y],
       globalCompositeOperation:
         tool === "eraser" ? "destination-out" : "source-over",
-    };
+    });
 
     setLines((prev) => [...prev, newLine]);
   };
@@ -161,7 +217,7 @@ const Whiteboard = () => {
           Math.abs(currentRect.height) > 5
         ) {
           setRectangles((prev) => [...prev, currentRect]);
-          console.log("📐 Rectangle added:", currentRect);
+          console.log("📐 Rectangle created locally:", currentRect);
         }
         setCurrentRect(null);
       }
@@ -190,6 +246,31 @@ const Whiteboard = () => {
     setCurrentRect(null);
     console.log("🗑️ Canvas Cleared");
   };
+
+  // ============================================
+  // TEST: Simulate remote shape (Remove after testing)
+  // ============================================
+  useEffect(() => {
+    // This simulates receiving a shape from another user
+    // Uncomment to test remote shape addition
+    // const testRemoteShape = {
+    //   id: crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).substr(2, 9),
+    //   type: 'text',
+    //   x: 200,
+    //   y: 150,
+    //   text: '👋 Remote User',
+    //   color: '#ef4444',
+    //   fontSize: 24,
+    //   fontFamily: 'Arial, sans-serif',
+    // };
+    //
+    // // Add the remote shape after 2 seconds
+    // const timer = setTimeout(() => {
+    //   addRemoteShape(testRemoteShape);
+    // }, 2000);
+    //
+    // return () => clearTimeout(timer);
+  }, []);
 
   return (
     <div className="whiteboard-container">
@@ -251,7 +332,7 @@ const Whiteboard = () => {
                   y={rect.y}
                   width={rect.width}
                   height={rect.height}
-                  stroke={rect.stroke}
+                  stroke={rect.color}
                   strokeWidth={rect.strokeWidth || 2}
                   fill={rect.fill || "transparent"}
                   listening={false}
@@ -266,7 +347,7 @@ const Whiteboard = () => {
                   y={text.y}
                   text={text.text}
                   fontSize={text.fontSize}
-                  fill={text.fill}
+                  fill={text.color}
                   fontFamily={text.fontFamily || "Arial, sans-serif"}
                   listening={false}
                 />
