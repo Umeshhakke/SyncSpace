@@ -14,13 +14,13 @@ const SUPPORTED_LANGUAGES = [
 
 /**
  * CodeEditor Component
- * Wraps Monaco Editor with language selection and theme synchronization capabilities.
+ * Responsive Monaco Editor component with full panel layout, dynamic theme, and language selection.
  */
 const CodeEditor = ({
   defaultValue = "// Type your code here...",
   isDarkMode = true,
   theme,
-  height = "500px",
+  height = "100%",
   width = "100%",
   onMount,
   onChange,
@@ -109,27 +109,48 @@ const CodeEditor = ({
   );
 };
 
+// Base layout styles shared across dark/light modes
+const baseContainerStyle = {
+  display: "flex",
+  flexDirection: "column",
+  width: "100%",
+  height: "100%",
+  borderRadius: "8px",
+  overflow: "hidden",
+  boxSizing: "border-box",
+  fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+};
+
+const baseToolbarStyle = {
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "flex-end",
+  padding: "8px 16px",
+  flexShrink: 0,
+  gap: "10px",
+  boxSizing: "border-box",
+};
+
+const baseEditorWrapperStyle = {
+  flex: 1,
+  width: "100%",
+  height: "100%",
+  minHeight: 0,
+  minWidth: 0,
+  overflow: "hidden",
+};
+
 // Dark Mode Styles
 const darkStyles = {
   container: {
-    display: "flex",
-    flexDirection: "column",
-    width: "100%",
-    height: "100%",
-    borderRadius: "8px",
-    overflow: "hidden",
+    ...baseContainerStyle,
     boxShadow: "0 4px 12px rgba(0, 0, 0, 0.15)",
     backgroundColor: "#1e1e1e",
-    fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
   },
   toolbar: {
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "flex-end",
-    padding: "8px 16px",
+    ...baseToolbarStyle,
     backgroundColor: "#252526",
     borderBottom: "1px solid #3c3c3c",
-    gap: "10px",
   },
   label: {
     color: "#cccccc",
@@ -147,33 +168,20 @@ const darkStyles = {
     outline: "none",
     transition: "border-color 0.2s, background-color 0.2s",
   },
-  editorWrapper: {
-    flex: 1,
-    width: "100%",
-  },
+  editorWrapper: baseEditorWrapperStyle,
 };
 
 // Light Mode Styles
 const lightStyles = {
   container: {
-    display: "flex",
-    flexDirection: "column",
-    width: "100%",
-    height: "100%",
-    borderRadius: "8px",
-    overflow: "hidden",
+    ...baseContainerStyle,
     boxShadow: "0 4px 12px rgba(0, 0, 0, 0.08)",
     backgroundColor: "#ffffff",
-    fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
   },
   toolbar: {
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "flex-end",
-    padding: "8px 16px",
+    ...baseToolbarStyle,
     backgroundColor: "#f3f3f3",
     borderBottom: "1px solid #e0e0e0",
-    gap: "10px",
   },
   label: {
     color: "#333333",
@@ -191,10 +199,7 @@ const lightStyles = {
     outline: "none",
     transition: "border-color 0.2s, background-color 0.2s",
   },
-  editorWrapper: {
-    flex: 1,
-    width: "100%",
-  },
+  editorWrapper: baseEditorWrapperStyle,
 };
 
 export default CodeEditor;

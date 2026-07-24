@@ -3,7 +3,7 @@ import CodeEditor from "../components/CodeEditor/CodeEditor";
 
 /**
  * EditorPage Component
- * Host page for Monaco Editor with theme state management.
+ * Host page for Monaco Editor with theme state management and full panel layout.
  */
 const EditorPage = () => {
   // Application dark mode state (defaults to true)
@@ -17,19 +17,25 @@ const EditorPage = () => {
     <div
       className="editor-page"
       style={{
-        padding: "20px",
-        minHeight: "100vh",
+        display: "flex",
+        flexDirection: "column",
+        width: "100%",
+        height: "100vh",
+        padding: "16px",
+        boxSizing: "border-box",
         backgroundColor: isDarkMode ? "#121212" : "#f5f5f5",
         color: isDarkMode ? "#ffffff" : "#000000",
         transition: "background-color 0.3s, color 0.3s",
+        overflow: "hidden",
       }}
     >
       <div
         style={{
-          marginBottom: "16px",
+          marginBottom: "12px",
           display: "flex",
           justifyContent: "space-between",
           alignItems: "center",
+          flexShrink: 0,
         }}
       >
         <h2 style={{ margin: 0 }}>SyncSpace Code Editor</h2>
@@ -50,7 +56,9 @@ const EditorPage = () => {
           {isDarkMode ? "☀️ Light Mode" : "🌙 Dark Mode"}
         </button>
       </div>
-      <CodeEditor isDarkMode={isDarkMode} height="600px" />
+      <div style={{ flex: 1, minHeight: 0, width: "100%", height: "100%" }}>
+        <CodeEditor isDarkMode={isDarkMode} height="100%" width="100%" />
+      </div>
     </div>
   );
 };
