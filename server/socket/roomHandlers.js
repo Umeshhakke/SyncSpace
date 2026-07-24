@@ -1,10 +1,11 @@
 // server/socket/roomHandlers.js - Socket.io event handlers
 
-const documentManager = require('../yjs/documentManager'); // 👈 NEW: Import Yjs Document Manager
+const documentManager = require('../yjs/documentManager');
+const { saveDocumentToDB } = require('../yjs/persistence'); // 👈 NEW
 
 const registerRoomEvents = (io, socket, roomManager) => {
-  // ---------- JOIN ROOM ----------
-  socket.on("join-room", ({ roomId, username }) => {
+  // ---------- JOIN ROOM (async) ----------
+  socket.on("join-room", async ({ roomId, username }) => {
     if (!roomId || !username) {
       socket.emit("error", { message: "Room ID and Username are required." });
       return;
@@ -21,8 +22,16 @@ const registerRoomEvents = (io, socket, roomManager) => {
 
     roomManager.addUser(roomId, socket.id, username);
 
-    // 👇 NEW: Get or create the Yjs document for this room
-    documentManager.getDocument(roomId);
+    // ---------- Load or create Yjs document ----------
+    let doc = documentManager.getDocument(roomId); // check memory
+    if (!doc) {
+      // Try to load from DB
+      doc = await documentManager.loadDocumentFromDB(roomId);
+    }
+    if (!doc) {
+      // Create new empty document
+      doc = documentManager.getDocument(roomId);
+    }
 
     socket.broadcast.to(roomId).emit("user-joined", {
       userId: socket.id,
@@ -39,8 +48,8 @@ const registerRoomEvents = (io, socket, roomManager) => {
     console.log(`👥 Room "${roomId}" now has ${participants.length} participants.`);
   });
 
-  // ---------- LEAVE ROOM ----------
-  socket.on("leave-room", () => {
+  // ---------- LEAVE ROOM (async) ----------
+  socket.on("leave-room", async () => {
     const roomId = socket.data.roomId;
     const username = socket.data.username;
 
@@ -52,9 +61,13 @@ const registerRoomEvents = (io, socket, roomManager) => {
     socket.leave(roomId);
     roomManager.removeUser(roomId, socket.id);
 
-    // 👇 NEW: Check if room is empty, delete Yjs document if it is
     const remainingUsers = roomManager.getRoomSize(roomId);
     if (remainingUsers === 0) {
+      // Save final state before deletion
+      const doc = documentManager.getDocument(roomId);
+      if (doc) {
+        await saveDocumentToDB(roomId, doc);
+      }
       documentManager.deleteDocument(roomId);
     }
 
@@ -71,8 +84,8 @@ const registerRoomEvents = (io, socket, roomManager) => {
     socket.emit("left-room", { roomId, message: "You have left the room." });
   });
 
-  // ---------- DISCONNECT ----------
-  socket.on("disconnect", () => {
+  // ---------- DISCONNECT (async) ----------
+  socket.on("disconnect", async () => {
     const roomId = socket.data.roomId;
     const username = socket.data.username;
 
@@ -80,9 +93,13 @@ const registerRoomEvents = (io, socket, roomManager) => {
       console.log(`⚠️ ${username} (${socket.id}) disconnected unexpectedly. Cleaning up...`);
       roomManager.removeUser(roomId, socket.id);
 
-      // 👇 NEW: Check if room is empty, delete Yjs document if it is
       const remainingUsers = roomManager.getRoomSize(roomId);
       if (remainingUsers === 0) {
+        // Save final state before deletion
+        const doc = documentManager.getDocument(roomId);
+        if (doc) {
+          await saveDocumentToDB(roomId, doc);
+        }
         documentManager.deleteDocument(roomId);
       }
 
