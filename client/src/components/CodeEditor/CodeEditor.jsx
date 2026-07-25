@@ -1,33 +1,48 @@
-import React, { useRef, useState } from "react";
+import React, { useRef, useState, useEffect } from "react";
 import Editor from "@monaco-editor/react";
 import EditorToolbar from "./EditorToolbar";
+import EditorStatusBar from "./EditorStatusBar";
 import useYjsEditor from "../../hooks/useYjsEditor";
+import {
+  editorOptions,
+  themes,
+  supportedLanguages,
+  defaultSettings,
+} from "../../utils/editorConfig";
 import "./codeEditor.css";
 
 /**
  * ============================================
- * CodeEditor Component with Professional Toolbar
+ * CodeEditor - Main Component
  * ============================================
  * Full-featured Monaco Editor with:
- * - Language selection
- * - Theme switching
- * - Font size control
- * - Tab size control
- * - Minimap toggle
- * - Formatting
+ * - Professional toolbar
+ * - Status bar
  * - Yjs collaboration
+ * - Theme support
+ * - Language selection
+ *
+ * Integration Points for Member 4:
+ * 1. Pass provider to useYjsEditor
+ * 2. Pass awareness to useYjsEditor
+ * 3. Monitor connection status via hook
  */
 const CodeEditor = () => {
   const editorRef = useRef(null);
   const monacoRef = useRef(null);
 
   // Editor settings state
-  const [language, setLanguage] = useState("javascript");
-  const [theme, setTheme] = useState("vs-dark");
-  const [fontSize, setFontSize] = useState(15);
-  const [tabSize, setTabSize] = useState(4);
-  const [showMinimap, setShowMinimap] = useState(false);
+  const [language, setLanguage] = useState(defaultSettings.language);
+  const [theme, setTheme] = useState(defaultSettings.theme);
+  const [fontSize, setFontSize] = useState(defaultSettings.fontSize);
+  const [tabSize, setTabSize] = useState(defaultSettings.tabSize);
+  const [showMinimap, setShowMinimap] = useState(defaultSettings.showMinimap);
   const [isEditorReady, setIsEditorReady] = useState(false);
+
+  // Editor stats
+  const [cursorPosition, setCursorPosition] = useState({ line: 1, column: 1 });
+  const [lineCount, setLineCount] = useState(0);
+  const [characterCount, setCharacterCount] = useState(0);
 
   // Initialize Yjs hook
   const {
@@ -39,6 +54,7 @@ const CodeEditor = () => {
     getBindingStatus,
     forceSync,
     insertText,
+    roomId,
   } = useYjsEditor(editorRef, {
     roomId: "default-room",
     enableAwareness: false,
@@ -57,85 +73,44 @@ const CodeEditor = () => {
     editor.updateOptions({
       fontSize: fontSize,
       tabSize: tabSize,
-      fontFamily: 'Consolas, "Courier New", monospace',
       minimap: { enabled: showMinimap },
-      scrollBeyondLastLine: false,
-      wordWrap: "on",
-      roundedSelection: true,
-      cursorBlinking: "smooth",
-      formatOnPaste: true,
-      formatOnType: true,
-      automaticLayout: true,
-      insertSpaces: true,
-      lineNumbers: "on",
-      bracketPairColorization: { enabled: true },
-      matchBrackets: "always",
-      folding: true,
-      smoothScrolling: true,
-      suggest: {
-        showKeywords: true,
-        showSnippets: true,
-      },
+      ...editorOptions,
     });
 
-    // Define custom themes
-    monaco.editor.defineTheme("syncspace-dark", {
-      base: "vs-dark",
-      inherit: true,
-      rules: [
-        { token: "comment", foreground: "6272a4" },
-        { token: "keyword", foreground: "ff79c6" },
-        { token: "string", foreground: "f1fa8c" },
-        { token: "number", foreground: "bd93f9" },
-        { token: "function", foreground: "50fa7b" },
-        { token: "variable", foreground: "f8f8f2" },
-        { token: "operator", foreground: "ff79c6" },
-      ],
-      colors: {
-        "editor.background": "#1e1e2e",
-        "editor.foreground": "#cdd6f4",
-        "editor.lineHighlightBackground": "#313244",
-        "editor.selectionBackground": "#45475a",
-        "editor.inactiveSelectionBackground": "#313244",
-        "editorIndentGuide.background": "#313244",
-        "editorIndentGuide.activeBackground": "#45475a",
-        "editor.lineNumber.foreground": "#6c7086",
-        "editor.lineNumber.activeForeground": "#cdd6f4",
-      },
-    });
-
-    monaco.editor.defineTheme("syncspace-light", {
-      base: "vs",
-      inherit: true,
-      rules: [
-        { token: "comment", foreground: "6a737d" },
-        { token: "keyword", foreground: "d73a49" },
-        { token: "string", foreground: "032f62" },
-        { token: "number", foreground: "005cc5" },
-        { token: "function", foreground: "6f42c1" },
-      ],
-      colors: {
-        "editor.background": "#ffffff",
-        "editor.foreground": "#24292e",
-        "editor.lineHighlightBackground": "#f6f8fa",
-        "editor.selectionBackground": "#c8e1ff",
-        "editor.inactiveSelectionBackground": "#e8f0fe",
-        "editorIndentGuide.background": "#e1e4e8",
-        "editorIndentGuide.activeBackground": "#d0d7de",
-        "editor.lineNumber.foreground": "#6a737d",
-        "editor.lineNumber.activeForeground": "#24292e",
-      },
+    // Register themes
+    Object.values(themes).forEach((themeConfig) => {
+      monaco.editor.defineTheme(themeConfig.id, themeConfig);
     });
 
     // Apply initial theme
     monaco.editor.setTheme(theme);
     editor.focus();
+
+    // Set up cursor position listener
+    editor.onDidChangeCursorPosition((e) => {
+      setCursorPosition({
+        line: e.position.lineNumber,
+        column: e.position.column,
+      });
+    });
+
+    // Set up model content change listener
+    const model = editor.getModel();
+    if (model) {
+      model.onDidChangeContent(() => {
+        const value = model.getValue();
+        setLineCount(value.split("\n").length);
+        setCharacterCount(value.length);
+      });
+    }
+
+    console.log("📊 Editor Stats initialized");
   };
 
   /**
    * Update editor settings when they change
    */
-  React.useEffect(() => {
+  useEffect(() => {
     if (editorRef.current) {
       editorRef.current.updateOptions({
         fontSize: fontSize,
@@ -148,7 +123,7 @@ const CodeEditor = () => {
   /**
    * Update theme when it changes
    */
-  React.useEffect(() => {
+  useEffect(() => {
     if (monacoRef.current && editorRef.current) {
       monacoRef.current.editor.setTheme(theme);
       console.log("🎨 Theme applied:", theme);
@@ -158,7 +133,7 @@ const CodeEditor = () => {
   /**
    * Update language when it changes
    */
-  React.useEffect(() => {
+  useEffect(() => {
     if (editorRef.current && monacoRef.current) {
       const model = editorRef.current.getModel();
       if (model) {
@@ -182,6 +157,7 @@ const CodeEditor = () => {
    */
   const handleDebug = () => {
     console.log("📊 [UI] Yjs State:");
+    console.log(`  - Room ID: ${roomId}`);
     console.log(`  - Initialized: ${isInitialized}`);
     console.log(`  - Bound: ${isBound}`);
     console.log(`  - Version: ${version}`);
@@ -193,7 +169,7 @@ const CodeEditor = () => {
 
   return (
     <div className="code-editor-wrapper">
-      {/* Professional Toolbar */}
+      {/* Toolbar */}
       <EditorToolbar
         language={language}
         setLanguage={setLanguage}
@@ -208,6 +184,8 @@ const CodeEditor = () => {
         editorRef={editorRef}
         isBound={isBound}
         isInitialized={isInitialized}
+        onTestYjs={handleTestYjs}
+        onDebug={handleDebug}
       />
 
       {/* Editor */}
@@ -221,28 +199,24 @@ const CodeEditor = () => {
           options={{
             fontSize: fontSize,
             tabSize: tabSize,
-            fontFamily: 'Consolas, "Courier New", monospace',
             minimap: { enabled: showMinimap },
-            scrollBeyondLastLine: false,
-            wordWrap: "on",
-            roundedSelection: true,
-            cursorBlinking: "smooth",
-            formatOnPaste: true,
-            formatOnType: true,
-            automaticLayout: true,
-            insertSpaces: true,
-            lineNumbers: "on",
-            bracketPairColorization: { enabled: true },
-            matchBrackets: "always",
-            folding: true,
-            smoothScrolling: true,
-            suggest: {
-              showKeywords: true,
-              showSnippets: true,
-            },
+            ...editorOptions,
           }}
         />
       </div>
+
+      {/* Status Bar */}
+      <EditorStatusBar
+        language={language}
+        theme={theme}
+        isBound={isBound}
+        isInitialized={isInitialized}
+        cursorPosition={cursorPosition}
+        lineCount={lineCount}
+        characterCount={characterCount}
+        isConnected={isBound}
+        connectionStatus={isBound ? "remote" : "local"}
+      />
     </div>
   );
 };

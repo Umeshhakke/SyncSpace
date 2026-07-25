@@ -1,20 +1,8 @@
 import React from "react";
+import { supportedLanguages, themeOptions } from "../../utils/editorConfig";
 import "./codeEditor.css";
 
-/**
- * ============================================
- * EditorToolbar - Professional Editor Controls
- * ============================================
- * Provides controls for:
- * - Language selection
- * - Theme switching (Dark/Light)
- * - Font size adjustment
- * - Tab size configuration
- * - Minimap toggle
- * - Code formatting
- */
 const EditorToolbar = ({
-  // Editor settings
   language,
   setLanguage,
   theme,
@@ -25,63 +13,22 @@ const EditorToolbar = ({
   setTabSize,
   showMinimap,
   setShowMinimap,
-  // Editor reference for formatting
   editorRef,
-  // Yjs status
   isBound,
   isInitialized,
+  onTestYjs,
+  onDebug,
 }) => {
-  // Languages supported by Monaco
-  const languages = [
-    { value: "javascript", label: "JavaScript" },
-    { value: "typescript", label: "TypeScript" },
-    { value: "python", label: "Python" },
-    { value: "java", label: "Java" },
-    { value: "cpp", label: "C++" },
-    { value: "c", label: "C" },
-    { value: "csharp", label: "C#" },
-    { value: "go", label: "Go" },
-    { value: "rust", label: "Rust" },
-    { value: "ruby", label: "Ruby" },
-    { value: "php", label: "PHP" },
-    { value: "html", label: "HTML" },
-    { value: "css", label: "CSS" },
-    { value: "json", label: "JSON" },
-    { value: "markdown", label: "Markdown" },
-    { value: "sql", label: "SQL" },
-    { value: "shell", label: "Shell" },
-    { value: "xml", label: "XML" },
-    { value: "yaml", label: "YAML" },
-  ];
-
-  // Theme options
-  const themes = [
-    { value: "vs-dark", label: "🌙 Dark" },
-    { value: "light", label: "☀️ Light" },
-    { value: "hc-black", label: "🔲 High Contrast" },
-  ];
-
-  /**
-   * Handle language change
-   */
   const handleLanguageChange = (e) => {
-    const newLanguage = e.target.value;
-    setLanguage(newLanguage);
-    console.log("📝 [Toolbar] Language changed to:", newLanguage);
+    setLanguage(e.target.value);
+    console.log("📝 [Toolbar] Language changed to:", e.target.value);
   };
 
-  /**
-   * Handle theme change
-   */
   const handleThemeChange = (e) => {
-    const newTheme = e.target.value;
-    setTheme(newTheme);
-    console.log("🎨 [Toolbar] Theme changed to:", newTheme);
+    setTheme(e.target.value);
+    console.log("🎨 [Toolbar] Theme changed to:", e.target.value);
   };
 
-  /**
-   * Handle font size change
-   */
   const handleFontSizeChange = (e) => {
     const newSize = Number(e.target.value);
     if (newSize >= 8 && newSize <= 40) {
@@ -90,9 +37,6 @@ const EditorToolbar = ({
     }
   };
 
-  /**
-   * Handle tab size change
-   */
   const handleTabSizeChange = (e) => {
     const newSize = Number(e.target.value);
     if (newSize >= 1 && newSize <= 8) {
@@ -101,17 +45,11 @@ const EditorToolbar = ({
     }
   };
 
-  /**
-   * Handle minimap toggle
-   */
   const handleMinimapToggle = (e) => {
     setShowMinimap(e.target.checked);
     console.log("🗺️ [Toolbar] Minimap toggled:", e.target.checked);
   };
 
-  /**
-   * Format code
-   */
   const handleFormatCode = () => {
     if (editorRef?.current) {
       const action = editorRef.current.getAction(
@@ -125,14 +63,9 @@ const EditorToolbar = ({
           "⚠️ [Toolbar] Format action not available for this language",
         );
       }
-    } else {
-      console.warn("⚠️ [Toolbar] Editor not ready");
     }
   };
 
-  /**
-   * Reset all settings to defaults
-   */
   const handleResetSettings = () => {
     setLanguage("javascript");
     setTheme("vs-dark");
@@ -151,9 +84,8 @@ const EditorToolbar = ({
           className="toolbar-select"
           value={language}
           onChange={handleLanguageChange}
-          title="Select Programming Language"
         >
-          {languages.map((lang) => (
+          {supportedLanguages.map((lang) => (
             <option key={lang.value} value={lang.value}>
               {lang.label}
             </option>
@@ -170,9 +102,8 @@ const EditorToolbar = ({
           className="toolbar-select"
           value={theme}
           onChange={handleThemeChange}
-          title="Select Theme"
         >
-          {themes.map((t) => (
+          {themeOptions.map((t) => (
             <option key={t.value} value={t.value}>
               {t.label}
             </option>
@@ -222,7 +153,6 @@ const EditorToolbar = ({
             type="checkbox"
             checked={showMinimap}
             onChange={handleMinimapToggle}
-            title="Toggle Minimap"
           />
           <span className="checkbox-label">🗺️</span>
         </label>
@@ -234,16 +164,24 @@ const EditorToolbar = ({
       <button
         className="toolbar-btn toolbar-btn-format"
         onClick={handleFormatCode}
-        title="Format Code (Shift+Alt+F)"
       >
         ✨ Format
+      </button>
+
+      {/* Test Button */}
+      <button className="toolbar-btn toolbar-btn-test" onClick={onTestYjs}>
+        📝 Test
+      </button>
+
+      {/* Debug Button */}
+      <button className="toolbar-btn toolbar-btn-debug" onClick={onDebug}>
+        📊 Debug
       </button>
 
       {/* Reset Button */}
       <button
         className="toolbar-btn toolbar-btn-reset"
         onClick={handleResetSettings}
-        title="Reset to Default Settings"
       >
         🔄 Reset
       </button>

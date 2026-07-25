@@ -1,4 +1,153 @@
 /* ========================================
+   EDITOR STATUS BAR
+   ======================================== */
+.editor-status-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 4px 16px;
+  background: #181825;
+  border-top: 1px solid #313244;
+  flex-shrink: 0;
+  min-height: 28px;
+  font-size: 12px;
+  color: #6c7086;
+  font-family: "Consolas", monospace;
+}
+
+.status-left,
+.status-center,
+.status-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.status-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.status-label {
+  color: #6c7086;
+}
+
+.status-value {
+  color: #cdd6f4;
+  font-weight: 500;
+}
+
+.status-divider {
+  color: #313244;
+  margin: 0 4px;
+}
+
+/* Status Colors */
+.status-connected .status-value {
+  color: #a6e3a1;
+}
+
+.status-synced .status-value {
+  color: #89b4fa;
+}
+
+.status-ready .status-value {
+  color: #f9e2af;
+}
+
+.status-loading .status-value {
+  color: #f38ba8;
+  animation: pulse 1.5s infinite;
+}
+
+.status-version .status-value {
+  color: #a6e3a1;
+  font-weight: 600;
+}
+
+/* Status Bar Responsive */
+@media (max-width: 768px) {
+  .editor-status-bar {
+    padding: 2px 10px;
+    font-size: 10px;
+    min-height: 24px;
+    flex-wrap: wrap;
+    gap: 4px;
+  }
+
+  .status-left,
+  .status-center,
+  .status-right {
+    gap: 4px;
+  }
+
+  .status-divider {
+    margin: 0 2px;
+  }
+}
+
+@media (max-width: 480px) {
+  .editor-status-bar {
+    padding: 2px 6px;
+    font-size: 9px;
+    min-height: 20px;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .status-left,
+  .status-center,
+  .status-right {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .status-divider {
+    display: none;
+  }
+}
+
+/* Light mode status bar */
+@media (prefers-color-scheme: light) {
+  .editor-status-bar {
+    background: #f1f3f4;
+    border-top-color: #dadce0;
+  }
+
+  .status-label {
+    color: #5f6368;
+  }
+
+  .status-value {
+    color: #202124;
+  }
+
+  .status-divider {
+    color: #dadce0;
+  }
+
+  .status-connected .status-value {
+    color: #1e7e34;
+  }
+
+  .status-synced .status-value {
+    color: #1a73e8;
+  }
+
+  .status-ready .status-value {
+    color: #b8860b;
+  }
+
+  .status-loading .status-value {
+    color: #d32f2f;
+  }
+
+  .status-version .status-value {
+    color: #1e7e34;
+  }
+}
+/* ========================================
    Code Editor Wrapper
    ======================================== */
 .code-editor-wrapper {
