@@ -1038,7 +1038,7 @@ import { Stage, Layer, Line, Transformer, Circle, Label, Tag, Text } from "react
 import Toolbar from "./Toolbar";
 import RoomPanel from "./RoomPanel";
 import useCanvas from "../../hooks/useCanvas";
-import { useYjs } from "../../context/YjsContext";
+import useYjs from "../../hooks/useYjs";
 import socketService from "../../services/socketService";
 
 import { useWhiteboardState } from "./hooks/useWhiteboardState";
@@ -1068,31 +1068,30 @@ const Whiteboard = ({ roomId, username, isDarkMode }) => {
   const [roomUsers, setRoomUsers] = useState([]);
   const [notification, setNotification] = useState(null);
 
-  // ---------- 4. Yjs Context ----------
-  const yjs = useYjs();
+  // ---------- 4. Yjs ----------
+  const { doc, provider, awareness, shapesArray } = useYjs(roomId);
 
   // ---------- 5. Selection ----------
   const { selectedId, setSelectedId, dragStartRef } = useWhiteboardSelection(stageRef, transformerRef);
 
   // ---------- 6. Yjs helpers ----------
   const deleteShapeFromYjs = useCallback((shapeId) => {
-    if (!yjs?.shapesArray) return;
-    const arr = yjs.shapesArray.toArray();
-    const index = arr.findIndex(shape => shape.id === shapeId);
+    if (!shapesArray) return;
+    const index = shapesArray.toArray().findIndex(shape => shape.id === shapeId);
     if (index !== -1) {
-      yjs.shapesArray.delete(index, 1);
+      shapesArray.delete(index, 1);
       console.log(`🗑️ Deleted shape ${shapeId} from Yjs`);
     }
-  }, [yjs]);
+  }, [shapesArray]);
 
   const addShapeToYjs = useCallback((shapeData) => {
-    if (!yjs?.shapesArray) return;
-    const exists = yjs.shapesArray.toArray().some(shape => shape.id === shapeData.id);
+    if (!shapesArray) return;
+    const exists = shapesArray.toArray().some(shape => shape.id === shapeData.id);
     if (!exists && shapeData.id) {
-      yjs.shapesArray.push([shapeData]);
+      shapesArray.push([shapeData]);
       console.log(`🔄 Re-added shape ${shapeData.id} to Yjs (redo)`);
     }
-  }, [yjs]);
+  }, [shapesArray]);
 
   // ---------- 7. useCanvas ----------
   const {
@@ -1113,7 +1112,7 @@ const Whiteboard = ({ roomId, username, isDarkMode }) => {
 
   // ---------- 8. Yjs Sync ----------
   const { syncedIdsRef } = useWhiteboardSync(
-    yjs?.shapesArray || null,
+    shapesArray,
     lines,
     setLines,
     selectedId,
@@ -1123,8 +1122,8 @@ const Whiteboard = ({ roomId, username, isDarkMode }) => {
 
   // ---------- 9. Update shape in Yjs ----------
   const updateShapeInYjs = useCallback((shape) => {
-    if (!yjs?.shapesArray) return;
-    const arr = yjs.shapesArray.toArray();
+    if (!shapesArray) return;
+    const arr = shapesArray.toArray();
     const index = arr.findIndex(s => s.id === shape.id);
     if (index !== -1) {
       let yjsShape;
@@ -1152,11 +1151,11 @@ const Whiteboard = ({ roomId, username, isDarkMode }) => {
           timestamp: Date.now(),
         };
       }
-      yjs.shapesArray.delete(index, 1);
-      yjs.shapesArray.insert(index, [yjsShape]);
+      shapesArray.delete(index, 1);
+      shapesArray.insert(index, [yjsShape]);
       console.log(`📦 Updated shape ${shape.id} in Yjs`);
     }
-  }, [yjs, username]);
+  }, [shapesArray, username]);
 
   // ---------- 10. Awareness ----------
   const {
@@ -1169,13 +1168,9 @@ const Whiteboard = ({ roomId, username, isDarkMode }) => {
     updateLiveStroke,
     updateLiveShape,
     updateDraggingShape,
-  } = useWhiteboardAwareness(
-    yjs?.awareness || null,
-    yjs?.doc || null,
-    username
-  );
+  } = useWhiteboardAwareness(awareness, doc, username);
 
-  // ---------- Broadcast live stroke ----------
+  // ---------- 👈 ADDED: Broadcast live stroke when currentLine changes ----------
   useEffect(() => {
     if (currentLine) {
       updateLiveStroke(currentLine);
@@ -1199,7 +1194,7 @@ const Whiteboard = ({ roomId, username, isDarkMode }) => {
     setStartPoint,
     previewShape,
     setPreviewShape,
-    isDrawing,
+    isDrawing,          // ✅ PASSED
     setIsDrawing,
     startDrawing,
     draw,
@@ -1210,7 +1205,7 @@ const Whiteboard = ({ roomId, username, isDarkMode }) => {
     updateDraggingShape,
     selectedId,
     setSelectedId,
-    yjs?.awareness || null,
+    awareness,
     updateLocalCursor
   );
 
@@ -1277,24 +1272,6 @@ const Whiteboard = ({ roomId, username, isDarkMode }) => {
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
   }, []);
-
-  // ---------- Guard ----------
-  if (!yjs || !yjs.doc || !yjs.provider || !yjs.awareness || !yjs.shapesArray) {
-    return (
-      <div style={{
-        display: 'flex',
-        justifyContent: 'center',
-        alignItems: 'center',
-        height: '100%',
-        color: isDarkMode ? '#e0e0e0' : '#333',
-        background: isDarkMode ? '#0d1117' : '#ffffff'
-      }}>
-        Connecting to collaborative session...
-      </div>
-    );
-  }
-
-  const { doc, provider, awareness, shapesArray } = yjs;
 
   // ---------- 15. Render ----------
   return (

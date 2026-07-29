@@ -10,7 +10,7 @@ export const useWhiteboardDrawing = (
   setStartPoint,
   previewShape,
   setPreviewShape,
-  isDrawing,
+  isDrawing, // ✅ ADDED
   setIsDrawing,
   startDrawing,
   draw,
@@ -65,16 +65,7 @@ export const useWhiteboardDrawing = (
     const isShapeTool = ["rectangle", "circle", "triangle", "line"].includes(tool);
 
     if (isShapeTool && startPoint) {
-      const shape = createShapeObject(
-        tool,
-        startPoint.x,
-        startPoint.y,
-        pos.x,
-        pos.y,
-        tool === "eraser" ? "#ffffff" : color,
-        tool === "eraser" ? brushSize * 2 : brushSize,
-        username
-      );
+      const shape = createShapeObject(tool, startPoint.x, startPoint.y, pos.x, pos.y, tool === "eraser" ? "#ffffff" : color, tool === "eraser" ? brushSize * 2 : brushSize, username);
       setPreviewShape(shape);
       updateLiveShape(shape);
       return;
@@ -102,16 +93,7 @@ export const useWhiteboardDrawing = (
         updateLiveShape(null);
         return;
       }
-      const shape = createShapeObject(
-        tool,
-        startPoint.x,
-        startPoint.y,
-        pos.x,
-        pos.y,
-        tool === "eraser" ? "#ffffff" : color,
-        tool === "eraser" ? brushSize * 2 : brushSize,
-        username
-      );
+      const shape = createShapeObject(tool, startPoint.x, startPoint.y, pos.x, pos.y, tool === "eraser" ? "#ffffff" : color, tool === "eraser" ? brushSize * 2 : brushSize, username);
       setLines((prev) => [...prev, shape]);
       setIsDrawing(false);
       setStartPoint(null);

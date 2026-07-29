@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useLocation, useNavigate } from 'react-router-dom';
 import { useSocket } from '../context/SocketContext';
-import { YjsProvider } from '../context/YjsContext';        // ← NEW
-import Whiteboard from '../components/Whiteboard/Whiteboard';
-import { CodeEditor } from '../components/CodeEditor';      // ← NEW (instead of placeholder)
+import Whiteboard from '../components/Whiteboard/Whiteboard';  // ✅ Default import
+
+import CodeEditor from '../components/Editor/CodeEditor';
 
 const EditorPage = () => {
   const { roomId } = useParams();
@@ -12,12 +12,14 @@ const EditorPage = () => {
   const { socket } = useSocket();
   const [participants, setParticipants] = useState([]);
   const [isDarkMode, setIsDarkMode] = useState(() => {
+    // Check localStorage for saved preference
     const saved = localStorage.getItem('theme');
     return saved ? saved === 'dark' : false;
   });
-
+  
   const username = location.state?.username || 'Guest';
 
+  // Toggle theme
   const toggleTheme = () => {
     setIsDarkMode((prev) => {
       const newTheme = !prev;
@@ -26,7 +28,7 @@ const EditorPage = () => {
     });
   };
 
-  // --- Participant tracking (unchanged) ---
+  // --- Participant tracking ---
   useEffect(() => {
     if (!socket) return;
     if (location.state?.participants) setParticipants(location.state.participants);
@@ -60,7 +62,7 @@ const EditorPage = () => {
     }
   };
 
-  // Theme-aware styles (unchanged)
+  // Theme-aware styles
   const themeStyles = {
     container: {
       display: 'flex',
@@ -143,51 +145,50 @@ const EditorPage = () => {
   };
 
   return (
-    // 🔥 WRAP EVERYTHING WITH YjsProvider
-    <YjsProvider roomId={roomId}>
-      <div style={themeStyles.container}>
-        {/* Header */}
-        <header style={themeStyles.header}>
-          <div style={styles.headerLeft}>
-            <h2 style={themeStyles.headerTitle}>
-              <span style={{ marginRight: '0.5rem' }}>🎨</span>
-              {roomId}
-            </h2>
-            <span style={themeStyles.badge}>👤 {username}</span>
-          </div>
-          <div style={styles.headerRight}>
-            <span style={themeStyles.count}>👥 {participants.length} online</span>
-            <button
-              onClick={toggleTheme}
-              style={themeStyles.themeBtn}
-              title="Toggle Theme"
-            >
-              {isDarkMode ? '☀️' : '🌙'}
-            </button>
-            <button
-              onClick={handleLeave}
-              style={themeStyles.leaveBtn}
-              onMouseEnter={(e) => e.target.style.opacity = '0.85'}
-              onMouseLeave={(e) => e.target.style.opacity = '1'}
-            >
-              🚪 Leave
-            </button>
-          </div>
-        </header>
+    <div style={themeStyles.container}>
+      {/* Header */}
+      <header style={themeStyles.header}>
+        <div style={styles.headerLeft}>
+          <h2 style={themeStyles.headerTitle}>
+            <span style={{ marginRight: '0.5rem' }}>🎨</span>
+            {roomId}
+          </h2>
+          <span style={themeStyles.badge}>👤 {username}</span>
+        </div>
+        <div style={styles.headerRight}>
+          <span style={themeStyles.count}>👥 {participants.length} online</span>
+          <button
+            onClick={toggleTheme}
+            style={themeStyles.themeBtn}
+            title="Toggle Theme"
+          >
+            {isDarkMode ? '☀️' : '🌙'}
+          </button>
+          <button
+            onClick={handleLeave}
+            style={themeStyles.leaveBtn}
+            onMouseEnter={(e) => e.target.style.opacity = '0.85'}
+            onMouseLeave={(e) => e.target.style.opacity = '1'}
+          >
+            🚪 Leave
+          </button>
+        </div>
+      </header>
 
-        {/* Split Screen: Whiteboard (Left) | Code Editor (Right) */}
-        <div style={themeStyles.split}>
-          <div style={themeStyles.left}>
-            {/* 🔥 REMOVE roomId prop – Whiteboard now gets Yjs from context */}
-            <Whiteboard username={username} isDarkMode={isDarkMode} />
-          </div>
-          <div style={themeStyles.right}>
-            {/* 🔥 REPLACE placeholder with real CodeEditor */}
-            <CodeEditor />
-          </div>
+      {/* Split Screen: Whiteboard (Left) | Code Editor (Right) */}
+      <div style={themeStyles.split}>
+        <div style={themeStyles.left}>
+          <Whiteboard roomId={roomId} username={username} isDarkMode={isDarkMode} />
+        </div>
+        <div style={themeStyles.right}>
+          <CodeEditor
+            roomId={roomId}
+            username={username}
+            isDarkMode={isDarkMode}
+          />
         </div>
       </div>
-    </YjsProvider>
+    </div>
   );
 };
 
@@ -203,6 +204,27 @@ const styles = {
     alignItems: 'center',
     gap: '0.75rem',
     flexWrap: 'wrap',
+  },
+  editorPlaceholder: {
+    width: '100%',
+    height: '100%',
+    display: 'flex',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: '1rem',
+    transition: 'all 0.3s ease',
+  },
+  editorContent: {
+    textAlign: 'center',
+  },
+  placeholderBox: {
+    marginTop: '1rem',
+    padding: '2rem',
+    borderRadius: '8px',
+    border: '2px dashed',
+    fontSize: '1rem',
+    fontWeight: 'bold',
+    transition: 'all 0.3s ease',
   },
 };
 
