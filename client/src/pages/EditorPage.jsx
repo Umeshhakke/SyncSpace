@@ -3,33 +3,7 @@ import { useParams, useLocation, useNavigate } from 'react-router-dom';
 import { useSocket } from '../context/SocketContext';
 import Whiteboard from '../components/Whiteboard/Whiteboard';  // ✅ Default import
 
-// Code Editor Placeholder (Member 4 will replace this)
-const CodeEditorPlaceholder = ({ roomId, username, isDarkMode }) => (
-  <div style={{
-    ...styles.editorPlaceholder,
-    background: isDarkMode ? '#1a1a2e' : '#f8f9fa',
-    color: isDarkMode ? '#e0e0e0' : '#333',
-  }}>
-    <div style={styles.editorContent}>
-      <span style={{ fontSize: '3rem', opacity: 0.3 }}>📝</span>
-      <h3 style={{ color: isDarkMode ? '#e0e0e0' : '#333' }}>Code Editor</h3>
-      <p style={{ color: isDarkMode ? '#888' : '#666' }}>
-        Room: <strong style={{ color: isDarkMode ? '#e0e0e0' : '#333' }}>{roomId}</strong>
-      </p>
-      <p style={{ color: isDarkMode ? '#888' : '#666' }}>
-        User: <strong style={{ color: isDarkMode ? '#e0e0e0' : '#333' }}>{username}</strong>
-      </p>
-      <div style={{
-        ...styles.placeholderBox,
-        background: isDarkMode ? '#2c2c4a' : '#e9ecef',
-        borderColor: isDarkMode ? '#444' : '#ced4da',
-        color: isDarkMode ? '#888' : '#999',
-      }}>
-        ⬅️ Member 4 builds Code Editor here
-      </div>
-    </div>
-  </div>
-);
+import CodeEditor from '../components/Editor/CodeEditor';
 
 const EditorPage = () => {
   const { roomId } = useParams();
@@ -207,7 +181,7 @@ const EditorPage = () => {
           <Whiteboard roomId={roomId} username={username} isDarkMode={isDarkMode} />
         </div>
         <div style={themeStyles.right}>
-          <CodeEditorPlaceholder
+          <CodeEditor
             roomId={roomId}
             username={username}
             isDarkMode={isDarkMode}
