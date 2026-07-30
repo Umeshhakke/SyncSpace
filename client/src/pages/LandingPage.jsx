@@ -1,10 +1,12 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useSocket } from '../context/SocketContext';
+import '../styles/landing.css';
 
 const LandingPage = () => {
   const { socket, isConnected } = useSocket();
   const navigate = useNavigate();
+
   const [roomId, setRoomId] = useState('');
   const [username, setUsername] = useState('');
   const [error, setError] = useState('');
@@ -21,125 +23,398 @@ const LandingPage = () => {
       setError('Room ID and Username are required.');
       return;
     }
+
     if (!socket || !isConnected) {
       setError('Not connected to server.');
       return;
     }
 
     setIsJoining(true);
-    socket.emit('join-room', { roomId: trimmedRoom, username: trimmedUser });
 
+    // Send room join request to the existing Socket.IO backend
+    socket.emit('join-room', {
+      roomId: trimmedRoom,
+      username: trimmedUser,
+    });
+
+    // Wait for the backend to return the room participants
     const onParticipants = (data) => {
-      navigate(`/room/${trimmedRoom}`, {
-        state: { username: trimmedUser, participants: data.participants },
-      });
       setIsJoining(false);
-      socket.off('room:participants', onParticipants);
+
+      navigate(`/room/${trimmedRoom}`, {
+        state: {
+          username: trimmedUser,
+          participants: data.participants,
+        },
+      });
     };
 
     const onError = (err) => {
-      setError(err.message || 'Failed to join.');
+      setError(err?.message || 'Failed to join room.');
       setIsJoining(false);
-      socket.off('error', onError);
     };
 
     socket.once('room:participants', onParticipants);
     socket.once('error', onError);
+  };
 
-    setTimeout(() => {
-      if (isJoining) {
-        setError('Timeout. Please try again.');
-        setIsJoining(false);
-        socket.off('room:participants', onParticipants);
-        socket.off('error', onError);
-      }
-    }, 5000);
+  // Scrolls the user directly to the Join Workspace card
+  const scrollToWorkspace = () => {
+    document
+      .getElementById('workspace')
+      ?.scrollIntoView({ behavior: 'smooth' });
   };
 
   return (
-    <div style={styles.container}>
-      <div style={styles.card}>
-        <h1 style={styles.title}>🎨 SyncSpace</h1>
-        <p style={styles.subtitle}>Enter a room to start collaborating</p>
-        <form onSubmit={handleSubmit} style={styles.form}>
-          <input
-            type="text"
-            value={username}
-            onChange={(e) => setUsername(e.target.value)}
-            placeholder="Username (e.g. Alice)"
-            style={styles.input}
-            disabled={isJoining}
-            required
-          />
-          <input
-            type="text"
-            value={roomId}
-            onChange={(e) => setRoomId(e.target.value)}
-            placeholder="Room ID (e.g. Project-Alpha)"
-            style={styles.input}
-            disabled={isJoining}
-            required
-          />
-          {error && <div style={styles.error}>{error}</div>}
+    <div className="landing-page">
+
+      {/* ================= NAVBAR ================= */}
+      <nav className="landing-nav">
+
+        <div className="landing-logo">
+          <span className="logo-icon">S</span>
+          <span>SyncSpace</span>
+        </div>
+
+        <div className="nav-links">
+
+          <a href="#features">
+            Features
+          </a>
+
+          <a href="#workspace">
+            Workspace
+          </a>
+
           <button
-            type="submit"
-            style={{
-              ...styles.button,
-              ...(isJoining || !isConnected ? styles.buttonDisabled : {}),
-            }}
-            disabled={isJoining || !isConnected}
+            type="button"
+            className="nav-cta"
+            onClick={scrollToWorkspace}
           >
-            {isJoining ? 'Joining...' : '🚀 Join Room'}
+            Get Started
           </button>
-          <div style={styles.status}>
-            Status: {isConnected ? '🟢 Connected' : '🔴 Disconnected'}
+
+        </div>
+
+      </nav>
+
+
+      {/* ================= HERO ================= */}
+      <main className="hero-section">
+
+        <div className="hero-content">
+
+          <div className="hero-badge">
+            Real-time collaborative workspace
           </div>
-        </form>
-      </div>
+
+          <h1>
+            Collaborate.
+            <br />
+            <span>Code. Create.</span>
+          </h1>
+
+          <p className="hero-description">
+            Bring ideas, diagrams, and code together in one shared workspace.
+            SyncSpace lets your team brainstorm, design, and build together
+            in real time.
+          </p>
+
+          <div className="hero-buttons">
+
+            <button
+              type="button"
+              className="primary-cta"
+              onClick={scrollToWorkspace}
+            >
+              Start Collaborating
+            </button>
+
+            <a
+              href="#features"
+              className="secondary-cta"
+            >
+              Explore Features
+            </a>
+
+          </div>
+
+
+          {/* Server connection status */}
+          <div className="connection-indicator">
+
+            <span
+              className={`status-dot ${
+                isConnected ? 'connected' : 'disconnected'
+              }`}
+            />
+
+            {isConnected
+              ? 'Collaboration server connected'
+              : 'Connecting to collaboration server...'}
+
+          </div>
+
+        </div>
+
+
+        {/* ================= WORKSPACE CARD ================= */}
+
+        <div
+          className="workspace-card"
+          id="workspace"
+        >
+
+          <div className="workspace-card-header">
+
+            <span className="workspace-icon">
+              ↗
+            </span>
+
+            <div>
+              <h2>Enter your workspace</h2>
+              <p>
+                Join your team and start collaborating.
+              </p>
+            </div>
+
+          </div>
+
+
+          <form
+            onSubmit={handleSubmit}
+            className="workspace-form"
+          >
+
+            {/* Username */}
+
+            <label htmlFor="username">
+              Your name
+            </label>
+
+            <input
+              id="username"
+              type="text"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              placeholder="e.g. Alice"
+              disabled={isJoining}
+              required
+            />
+
+
+            {/* Room ID */}
+
+            <label htmlFor="roomId">
+              Room ID
+            </label>
+
+            <input
+              id="roomId"
+              type="text"
+              value={roomId}
+              onChange={(e) => setRoomId(e.target.value)}
+              placeholder="e.g. Project-Alpha"
+              disabled={isJoining}
+              required
+            />
+
+
+            {/* Error */}
+
+            {error && (
+              <div className="landing-error">
+                {error}
+              </div>
+            )}
+
+
+            {/* Join button */}
+
+            <button
+              type="submit"
+              className="join-button"
+              disabled={isJoining || !isConnected}
+            >
+
+              {isJoining
+                ? 'Joining workspace...'
+                : 'Join Workspace →'}
+
+            </button>
+
+          </form>
+
+
+          <p className="workspace-note">
+            Share the same Room ID with your teammates to collaborate.
+          </p>
+
+        </div>
+
+      </main>
+
+
+      {/* ================= FEATURES ================= */}
+
+      <section
+        className="features-section"
+        id="features"
+      >
+
+        <div className="section-heading">
+
+          <span>
+            BUILT FOR COLLABORATION
+          </span>
+
+          <h2>
+            Everything your team needs,
+            <br />
+            in one workspace.
+          </h2>
+
+          <p>
+            Move seamlessly between visual thinking and collaborative coding.
+          </p>
+
+        </div>
+
+
+        <div className="feature-grid">
+
+
+          {/* Whiteboard */}
+
+          <article className="feature-card">
+
+            <div className="feature-icon">
+              ✦
+            </div>
+
+            <h3>
+              Collaborative Whiteboard
+            </h3>
+
+            <p>
+              Draw shapes, diagrams, flows, and ideas together on a
+              synchronized canvas.
+            </p>
+
+          </article>
+
+
+          {/* Code editor */}
+
+          <article className="feature-card">
+
+            <div className="feature-icon">
+              &lt;/&gt;
+            </div>
+
+            <h3>
+              Live Code Editor
+            </h3>
+
+            <p>
+              Write and edit code together with a powerful Monaco-based
+              development environment.
+            </p>
+
+          </article>
+
+
+          {/* Synchronization */}
+
+          <article className="feature-card">
+
+            <div className="feature-icon">
+              ⚡
+            </div>
+
+            <h3>
+              Real-Time Synchronization
+            </h3>
+
+            <p>
+              See changes instantly while Yjs handles concurrent edits
+              without overwriting your teammates.
+            </p>
+
+          </article>
+
+
+          {/* Presence */}
+
+          <article className="feature-card">
+
+            <div className="feature-icon">
+              ◎
+            </div>
+
+            <h3>
+              Live Presence
+            </h3>
+
+            <p>
+              Know who's working with you through shared presence and
+              collaboration awareness.
+            </p>
+
+          </article>
+
+        </div>
+
+      </section>
+
+
+      {/* ================= CTA ================= */}
+
+      <section className="bottom-cta">
+
+        <h2>
+          Ideas move faster when teams build together.
+        </h2>
+
+        <p>
+          Create a shared workspace and start collaborating with your team.
+        </p>
+
+        <button
+          type="button"
+          className="primary-cta"
+          onClick={scrollToWorkspace}
+        >
+          Enter SyncSpace
+        </button>
+
+      </section>
+
+
+      {/* ================= FOOTER ================= */}
+
+      <footer className="landing-footer">
+
+        <div className="landing-logo">
+
+          <span className="logo-icon">
+            S
+          </span>
+
+          <span>
+            SyncSpace
+          </span>
+
+        </div>
+
+        <p>
+          Real-time collaborative whiteboard & code editor.
+        </p>
+
+      </footer>
+
     </div>
   );
-};
-
-const styles = {
-  container: {
-    display: 'flex',
-    justifyContent: 'center',
-    alignItems: 'center',
-    minHeight: '100vh',
-    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-    padding: '1rem',
-  },
-  card: {
-    background: 'white',
-    padding: '2.5rem',
-    borderRadius: '16px',
-    boxShadow: '0 20px 60px rgba(0,0,0,0.3)',
-    width: '100%',
-    maxWidth: '420px',
-  },
-  title: { margin: '0 0 0.25rem', fontSize: '2rem', textAlign: 'center', color: '#2c3e50' },
-  subtitle: { margin: '0 0 2rem', textAlign: 'center', color: '#7f8c8d' },
-  form: { display: 'flex', flexDirection: 'column', gap: '1rem' },
-  input: {
-    padding: '0.75rem',
-    border: '2px solid #e0e0e0',
-    borderRadius: '8px',
-    fontSize: '1rem',
-    outline: 'none',
-  },
-  error: { color: '#e74c3c', fontSize: '0.9rem', background: '#fde8e8', padding: '0.5rem', borderRadius: '6px', textAlign: 'center' },
-  button: {
-    padding: '0.75rem',
-    background: '#667eea',
-    color: 'white',
-    border: 'none',
-    borderRadius: '8px',
-    fontSize: '1.1rem',
-    fontWeight: '600',
-    cursor: 'pointer',
-  },
-  buttonDisabled: { background: '#bdc3c7', cursor: 'not-allowed' },
-  status: { textAlign: 'center', fontSize: '0.85rem', color: '#7f8c8d' },
 };
 
 export default LandingPage;
