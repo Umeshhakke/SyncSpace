@@ -38,7 +38,7 @@ const useYjs = (roomId) => {
     // 2. Read the server URL from Vite environment variables (VITE_YJS_SERVER_URL)
     // Fallback to local default port 1234
     // 2. Read the server URL from Vite environment variables
-const serverUrl = import.meta.env.VITE_YJS_SERVER_URL || "ws://localhost:1234";
+const serverUrl = import.meta.env.VITE_YJS_SERVER_URL || "ws://localhost:5000";
 
 console.log("Connecting to:", serverUrl, "Room:", roomId);
 
