@@ -2,16 +2,30 @@ import React, { useState, useRef, useEffect, useMemo, useCallback } from "react"
 import { Stage, Layer, Line, Circle, Text, Label, Tag } from "react-konva";
 import Toolbar from "./Toolbar";
 import RoomPanel from "./RoomPanel";
+import CodeEditor from "../CodeEditor/CodeEditor";
 import useCanvas from "../../hooks/useCanvas";
 import socketService from "../../services/socketService";
 import useYjs from "../../hooks/useYjs";
 
-const Whiteboard = () => {
+const Whiteboard = ({ initialTab = "whiteboard" }) => {
   const [tool, setTool] = useState("pen");
   const [color, setColor] = useState("#000000");
   const [brushSize, setBrushSize] = useState(5);
   const [stageSize, setStageSize] = useState({ width: 800, height: 600 });
   const stageRef = useRef(null);
+
+  // Active view tab state ("whiteboard" | "editor" | "split")
+  const [activeTab, setActiveTab] = useState(initialTab);
+
+  // Code Editor Dark/Light mode state
+  const [isDarkMode, setIsDarkMode] = useState(true);
+
+  // Sync active tab with initialTab prop if it changes via routing
+  useEffect(() => {
+    if (initialTab) {
+      setActiveTab(initialTab);
+    }
+  }, [initialTab]);
 
   // Room & socket connection states
   const [connectionStatus, setConnectionStatus] = useState("disconnected");
@@ -37,7 +51,7 @@ const Whiteboard = () => {
   } = useCanvas();
 
   // Initialize the Yjs collaboration hook when a user joins a room
-  const { doc, provider, awareness, shapesArray } = useYjs(currentRoomId);
+  const { doc, provider, awareness, shapesArray, metaMap, codeText, filesArray } = useYjs(currentRoomId);
 
   // Cache of synchronized shape IDs to prevent duplicate network syncs
   const syncedIdsRef = useRef(new Set());
@@ -95,13 +109,13 @@ const Whiteboard = () => {
         // Do not render the local user's own cursor
         if (clientId === doc?.clientID) return;
 
-        if (state.cursor) {
+        if (state.cursor && state.cursor.x !== undefined && state.cursor.y !== undefined) {
           cursors.push({
             clientId,
             x: state.cursor.x,
             y: state.cursor.y,
-            username: state.cursor.username,
-            color: state.cursor.color,
+            username: state.cursor.username || `User ${clientId}`,
+            color: state.cursor.color || "#1976d2",
           });
         }
       });
@@ -298,49 +312,37 @@ const Whiteboard = () => {
     }
   };
 
-  // Handle window resize for responsive canvas
+  // Dynamically calculate canvas container size on mount and resize
   useEffect(() => {
-    const handleResize = () => {
+    const updateSize = () => {
       const container = document.querySelector(".canvas-container");
       if (container) {
-        const rect = container.getBoundingClientRect();
         setStageSize({
-          width: rect.width - 4,
-          height: rect.height - 4,
+          width: container.clientWidth || 800,
+          height: container.clientHeight || 600,
         });
       }
     };
 
-    handleResize();
-    window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
-  }, []);
+    updateSize();
+    window.addEventListener("resize", updateSize);
+    return () => window.removeEventListener("resize", updateSize);
+  }, [activeTab]);
 
   // Mouse event handlers
   const handleMouseDown = (e) => {
-    const pos = e.target.getStage().getPointerPosition();
-    const newLine = {
-      tool: tool,
-      color: tool === "eraser" ? "#ffffff" : color,
-      size: tool === "eraser" ? brushSize * 2 : brushSize,
-      points: [pos.x, pos.y],
-      globalCompositeOperation:
-        tool === "eraser" ? "destination-out" : "source-over",
-    };
-    startDrawing(newLine);
+    startDrawing(e);
+    if (e.target.getStage()) {
+      const pos = e.target.getStage().getPointerPosition();
+      if (pos) updateLocalCursor(pos.x, pos.y);
+    }
   };
 
   const handleMouseMove = (e) => {
-    const pos = e.target.getStage().getPointerPosition();
-
-    // Draw locally if mouse button is down
-    if (isDrawing) {
-      draw(pos.x, pos.y);
-    }
-
-    // Share cursor position to remote users
-    if (awareness && currentUsername) {
-      updateLocalCursor(pos.x, pos.y);
+    draw(e);
+    if (e.target.getStage()) {
+      const pos = e.target.getStage().getPointerPosition();
+      if (pos) updateLocalCursor(pos.x, pos.y);
     }
   };
 
@@ -365,6 +367,8 @@ const Whiteboard = () => {
           {notification.message}
         </div>
       )}
+
+      {/* Top Header & Toolbar with Workspace View Selector */}
       <Toolbar
         tool={tool}
         setTool={setTool}
@@ -377,9 +381,24 @@ const Whiteboard = () => {
         clearCanvas={clearCanvas}
         canUndo={lines.length > 0}
         canRedo={redoStack.length > 0}
+        activeTab={activeTab}
+        setActiveTab={setActiveTab}
+        isDarkMode={isDarkMode}
+        setIsDarkMode={setIsDarkMode}
       />
+
       <div className="whiteboard-main-layout">
-        <div className="canvas-container">
+        {/* Whiteboard Canvas Container */}
+        <div
+          className="canvas-container"
+          style={{
+            display: activeTab === "whiteboard" || activeTab === "split" ? "block" : "none",
+            flex: activeTab === "split" ? "1" : "1",
+            height: "100%",
+            minWidth: 0,
+            overflow: "hidden",
+          }}
+        >
           <Stage
             ref={stageRef}
             width={stageSize.width}
@@ -452,6 +471,33 @@ const Whiteboard = () => {
             </Layer>
           </Stage>
         </div>
+
+        {/* Integrated Monaco Code Editor Workspace */}
+        <div
+          className="editor-container"
+          style={{
+            display: activeTab === "editor" || activeTab === "split" ? "block" : "none",
+            flex: activeTab === "split" ? "1" : "1",
+            height: "100%",
+            minWidth: 0,
+            overflow: "hidden",
+          }}
+        >
+          <CodeEditor
+            isDarkMode={isDarkMode}
+            doc={doc}
+            provider={provider}
+            awareness={awareness}
+            metaMap={metaMap}
+            codeText={codeText}
+            filesArray={filesArray}
+            username={currentUsername || "Anonymous"}
+            height="100%"
+            width="100%"
+          />
+        </div>
+
+        {/* Shared Teammate & SyncSpace Room Panel */}
         <RoomPanel
           connectionStatus={connectionStatus}
           isJoined={isJoined}

@@ -1,10 +1,10 @@
 import React from "react";
 import Whiteboard from "../components/Whiteboard/Whiteboard";
 
-const WhiteboardPage = () => {
+const WhiteboardPage = ({ initialTab }) => {
   return (
     <div className="whiteboard-page">
-      <Whiteboard />
+      <Whiteboard initialTab={initialTab} />
     </div>
   );
 };
