@@ -1,4 +1,5 @@
 import React from "react";
+import { Link } from "react-router-dom";
 
 const Toolbar = ({
   tool,
@@ -44,6 +45,22 @@ const Toolbar = ({
             >
               ⚡ Split View
             </button>
+            <Link
+              to="/login"
+              className="toolbar-view-btn"
+              title="User Login"
+              style={{ textDecoration: "none" }}
+            >
+              🔐 Login
+            </Link>
+            <Link
+              to="/profile"
+              className="toolbar-view-btn"
+              title="User Profile"
+              style={{ textDecoration: "none" }}
+            >
+              👤 Profile
+            </Link>
           </div>
           <div className="toolbar-divider"></div>
         </>
