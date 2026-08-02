@@ -4,11 +4,11 @@ import { WebsocketProvider } from "y-websocket";
 
 /**
  * Custom React hook to initialize and manage Yjs real-time collaborative state.
- * Exposes a Y.Doc, a WebsocketProvider, and an awareness presence instance.
+ * Exposes a Y.Doc, a WebsocketProvider, an awareness presence instance, and shared structures.
  * Handles proper resource cleanup when the room changes or component unmounts.
  * 
  * @param {string} roomId - The dynamic room identifier
- * @returns {Object} Yjs connection states { doc, provider, awareness, shapesArray }
+ * @returns {Object} Yjs connection states { doc, provider, awareness, shapesArray, metaMap, codeText, filesArray }
  */
 const useYjs = (roomId) => {
   const [yjsInstances, setYjsInstances] = useState({
@@ -16,8 +16,9 @@ const useYjs = (roomId) => {
     provider: null,
     awareness: null,
     shapesArray: null,
+    metaMap: null,
     codeText: null,
-    synced: false,
+    filesArray: null,
   });
 
   useEffect(() => {
@@ -28,6 +29,9 @@ const useYjs = (roomId) => {
         provider: null,
         awareness: null,
         shapesArray: null,
+        metaMap: null,
+        codeText: null,
+        filesArray: null,
       });
       return;
     }
@@ -50,7 +54,16 @@ const provider = new WebsocketProvider(serverUrl, roomId, doc);
     // Shared text for collaborative code editor
     const codeText = doc.getText("code");
 
-    // 5. Access the awareness instance for user cursor/state sharing
+    // 5. Access the shared Yjs Map for editor metadata (named "meta")
+    const metaMap = doc.getMap("meta");
+
+    // Access the shared Yjs Text for real-time code editing (named "code")
+    const codeText = doc.getText("code");
+
+    // PART 1: Access the shared Yjs Array for multi-file workspace (named "files")
+    const filesArray = doc.getArray("files");
+
+    // 6. Access the awareness instance for user cursor/state sharing
     const awareness = provider.awareness;
 
     // Listen to provider connection status to help debugging/syncing
@@ -83,11 +96,12 @@ const provider = new WebsocketProvider(serverUrl, roomId, doc);
       provider,
       awareness,
       shapesArray,
+      metaMap,
       codeText,
-      synced: false,
+      filesArray,
     });
 
-    // 6. Cleanup function to close connections and prevent memory leaks
+    // 7. Cleanup function to close connections and prevent memory leaks
     return () => {
       try {
         if (provider && statusHandler) provider.off && provider.off('status', statusHandler);

@@ -82,6 +82,42 @@
   color: #ef4444;
 }
 
+.toolbar-view-btn {
+  padding: 6px 12px;
+  border: 1px solid #d0d7de;
+  background: #ffffff;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+  color: #24292f;
+  transition: all 0.15s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.toolbar-view-btn:hover {
+  background: #f6f8fa;
+  border-color: #0969da;
+}
+
+.toolbar-view-btn.active {
+  background: #0969da;
+  color: #ffffff;
+  border-color: #0969da;
+  box-shadow: 0 1px 3px rgba(9, 105, 218, 0.3);
+}
+
+.editor-container {
+  flex: 1;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
 .toolbar-btn-danger:hover {
   background: #fee2e2;
   border-color: #fca5a5;

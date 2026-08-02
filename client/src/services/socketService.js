@@ -3,6 +3,7 @@ import { io } from "socket.io-client";
 class SocketService {
   constructor() {
     this.socket = null;
+    this.listeners = [];
   }
 
   /**
@@ -21,9 +22,14 @@ class SocketService {
     // Initialize the socket instance with configurations
     this.socket = io(apiUrl, {
       autoConnect: false, // Disabled auto-connection to only connect on-demand
-      auth: {                // <-- ADD THIS
-          token: "demo123"     // Hardcoded for now (or get from env)
-        }
+      auth: {
+        token: "demo123"
+      }
+    });
+
+    // Re-attach all registered event listeners
+    this.listeners.forEach(({ event, callback }) => {
+      this.socket.on(event, callback);
     });
 
     // 1. Connection Error Handling
@@ -93,6 +99,7 @@ class SocketService {
    * @param {Function} callback - Callback function execution on event receipt
    */
   on(event, callback) {
+    this.listeners.push({ event, callback });
     if (this.socket) {
       this.socket.on(event, callback);
     }
@@ -104,6 +111,9 @@ class SocketService {
    * @param {Function} callback - Specific callback function to unregister
    */
   off(event, callback) {
+    this.listeners = this.listeners.filter(
+      (l) => !(l.event === event && l.callback === callback)
+    );
     if (this.socket) {
       this.socket.off(event, callback);
     }
