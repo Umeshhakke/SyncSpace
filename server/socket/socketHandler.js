@@ -10,8 +10,8 @@ const { registerRoomEvents } = require("./roomHandlers");
 const initSocket = (httpServer) => {
   const io = new Server(httpServer, {
     cors: {
-      origin: "*", // In production, restrict to your frontend URL
-      methods: ["GET", "POST"],
+      origin: (origin, callback) => callback(null, true),
+      methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
       credentials: true,
     },
   });

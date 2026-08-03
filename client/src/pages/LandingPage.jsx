@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { useSocket } from '../context/SocketContext';
 import '../styles/landing.css';
 
@@ -24,38 +24,53 @@ const LandingPage = () => {
       return;
     }
 
-    if (!socket || !isConnected) {
-      setError('Not connected to server.');
-      return;
-    }
-
     setIsJoining(true);
 
-    // Send room join request to the existing Socket.IO backend
-    socket.emit('join-room', {
-      roomId: trimmedRoom,
-      username: trimmedUser,
-    });
-
-    // Wait for the backend to return the room participants
-    const onParticipants = (data) => {
+    const navigateToRoom = (participants = []) => {
       setIsJoining(false);
-
       navigate(`/room/${trimmedRoom}`, {
         state: {
           username: trimmedUser,
-          participants: data.participants,
+          participants,
         },
       });
     };
 
-    const onError = (err) => {
-      setError(err?.message || 'Failed to join room.');
-      setIsJoining(false);
-    };
+    if (socket && isConnected) {
+      let navigated = false;
+      const timeoutId = setTimeout(() => {
+        if (!navigated) {
+          navigated = true;
+          navigateToRoom([]);
+        }
+      }, 1500);
 
-    socket.once('room:participants', onParticipants);
-    socket.once('error', onError);
+      const onParticipants = (data) => {
+        if (!navigated) {
+          navigated = true;
+          clearTimeout(timeoutId);
+          navigateToRoom(data?.participants || []);
+        }
+      };
+
+      const onError = (err) => {
+        if (!navigated) {
+          navigated = true;
+          clearTimeout(timeoutId);
+          navigateToRoom([]);
+        }
+      };
+
+      socket.once('room:participants', onParticipants);
+      socket.once('error', onError);
+      socket.emit('join-room', {
+        roomId: trimmedRoom,
+        username: trimmedUser,
+      });
+    } else {
+      // If socket is reconnecting or offline, navigate directly so workspace can connect inside the room
+      navigateToRoom([]);
+    }
   };
 
   // Scrolls the user directly to the Join Workspace card
@@ -77,6 +92,18 @@ const LandingPage = () => {
         </div>
 
         <div className="nav-links">
+
+          <Link to="/dashboard" style={{ textDecoration: 'none', color: 'inherit', fontWeight: 500 }}>
+            Dashboard
+          </Link>
+
+          <Link to="/whiteboard" style={{ textDecoration: 'none', color: 'inherit', fontWeight: 500 }}>
+            Whiteboard
+          </Link>
+
+          <Link to="/editor" style={{ textDecoration: 'none', color: 'inherit', fontWeight: 500 }}>
+            Code Editor
+          </Link>
 
           <a href="#features">
             Features

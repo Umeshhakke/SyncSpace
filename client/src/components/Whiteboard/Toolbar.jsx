@@ -18,27 +18,6 @@ const Toolbar = ({
   isDarkMode = true,
   setIsDarkMode,
 }) => {
-  const tools = [
-    { id: "select", label: "Select", icon: Icons.Select },
-    { id: "pen", label: "Pen", icon: Icons.Pen },
-    { id: "eraser", label: "Eraser", icon: Icons.Eraser },
-  ];
-
-  const shapes = [
-    { id: "rectangle", label: "Rectangle", icon: Icons.Rectangle },
-    { id: "circle", label: "Circle", icon: Icons.Circle },
-    { id: "triangle", label: "Triangle", icon: Icons.Triangle },
-    { id: "line", label: "Line", icon: Icons.Line },
-  ];
-
-  const isShapeTool = (toolId) => shapes.some((s) => s.id === toolId);
-
-  const getToolIcon = (toolId) => {
-    const allTools = [...tools, ...shapes];
-    const found = allTools.find((t) => t.id === toolId);
-    return found ? found.icon : null;
-  };
-
   return (
     <div className="toolbar">
       {/* Mode / View Switcher Group */}

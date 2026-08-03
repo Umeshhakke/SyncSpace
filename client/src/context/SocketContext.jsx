@@ -20,6 +20,11 @@ export const SocketProvider = ({ children }) => {
 
     const newSocket = io(serverUrl, {
       auth: { token: 'demo123' },
+      transports: ['websocket', 'polling'],
+      reconnection: true,
+      reconnectionAttempts: 20,
+      reconnectionDelay: 1000,
+      withCredentials: true,
     });
 
     newSocket.on('connect', () => {
@@ -29,6 +34,9 @@ export const SocketProvider = ({ children }) => {
     newSocket.on('disconnect', () => {
       console.log('❌ Socket disconnected');
       setIsConnected(false);
+    });
+    newSocket.on('connect_error', (err) => {
+      console.warn('⚠️ Socket connection attempt failed:', err.message);
     });
 
     setSocket(newSocket);
