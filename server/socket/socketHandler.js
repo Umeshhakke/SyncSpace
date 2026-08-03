@@ -30,14 +30,8 @@ const initSocket = (httpServer) => {
   io.on("connection", (socket) => {
     console.log(`🔌 New client connected: ${socket.id}`);
 
-    // Register all room events from your existing roomHandlers
+    // Register all room events (including disconnect cleanup) from roomHandlers
     registerRoomEvents(io, socket, roomManager);
-
-    // Optional: add any additional socket events here
-
-    socket.on("disconnect", () => {
-      console.log(`❌ User disconnected: ${socket.id}`);
-    });
   });
 
   return io; // (optional – if you need the io instance elsewhere)
