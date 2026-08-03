@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { useNavigate } from "react-router-dom";
 import { Button } from "../ui";
 import {
     Share2,
@@ -14,6 +15,8 @@ import {
 } from "lucide-react";
 import SettingsDrawer from "../settings/SettingsDrawer";
 import { useWorkspace } from "../../context/WorkspaceContext";
+import { getSavedUser } from "../../services/authService";
+import socketService from "../../services/socketService";
 
 /* =========================================================
    Collaborator Avatars
@@ -182,6 +185,7 @@ function ThemeSwitcher({ darkMode, setDarkMode }) {
 ========================================================= */
 
 function Header() {
+    const navigate = useNavigate();
     const { participants, notifications, connectionStatus } = useWorkspace();
 
     const [darkMode, setDarkMode] = useState(null);
@@ -190,6 +194,16 @@ function Header() {
     const shareRef = useRef(null);
 
     const roomUrl = `${window.location.origin}${window.location.pathname}`;
+
+    const handleLeave = () => {
+        socketService.leaveRoom();
+        const user = getSavedUser();
+        if (user) {
+            navigate("/dashboard");
+        } else {
+            navigate("/");
+        }
+    };
 
     useEffect(() => {
         const isDark =
@@ -290,6 +304,7 @@ function Header() {
                 <Button
                     variant="danger"
                     className="flex items-center gap-1.5 rounded-lg bg-red-600 px-3 py-1.5 text-sm text-white hover:bg-red-700"
+                    onClick={handleLeave}
                 >
                     <LogOut size={15} />
                     Leave
