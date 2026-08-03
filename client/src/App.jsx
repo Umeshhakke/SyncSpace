@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import { SocketProvider } from "./context/SocketContext";
 import LandingPage from "./pages/LandingPage";
+import DashboardPage from "./pages/DashboardPage";
 import WhiteboardPage from "./pages/WhiteboardPage";
 import LoginPage from "./pages/LoginPage";
 import ProfilePage from "./pages/ProfilePage";
@@ -15,6 +16,7 @@ function App() {
         <div className="App">
           <Routes>
             <Route path="/" element={<LandingPage />} />
+            <Route path="/dashboard" element={<DashboardPage />} />
             <Route path="/room/:roomId" element={<WhiteboardPage initialTab="split" />} />
             <Route path="/whiteboard" element={<WhiteboardPage initialTab="whiteboard" />} />
             <Route path="/editor" element={<WhiteboardPage initialTab="editor" />} />

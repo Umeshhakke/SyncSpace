@@ -45,8 +45,15 @@ const Navbar = ({ isDarkMode, setIsDarkMode }) => {
 
       <div className={`navbar-links ${mobileMenuOpen ? "open" : ""}`}>
         <Link
+          to="/dashboard"
+          className={`nav-item ${isActive("/dashboard") ? "active" : ""}`}
+          onClick={() => setMobileMenuOpen(false)}
+        >
+          📊 Dashboard
+        </Link>
+        <Link
           to="/whiteboard"
-          className={`nav-item ${isActive("/whiteboard") || isActive("/") ? "active" : ""}`}
+          className={`nav-item ${isActive("/whiteboard") ? "active" : ""}`}
           onClick={() => setMobileMenuOpen(false)}
         >
           🎨 Whiteboard
