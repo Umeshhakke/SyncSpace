@@ -13,6 +13,7 @@ const {
   persistAllDocuments,
 } = require("./yjs/persistence");
 const connectDB = require("./config/db"); // 👈 ADDED (your DB connection)
+const authRoutes = require("./routes/authRoutes");
 
 dotenv.config();
 
@@ -28,6 +29,9 @@ connectDB()
     const app = express();
     app.use(cors());
     app.use(express.json());
+
+    // API Routes
+    app.use("/api/auth", authRoutes);
 
     // Health check route
     app.get("/health", (req, res) => {

@@ -54,11 +54,8 @@ const provider = new WebsocketProvider(serverUrl, roomId, doc);
     // Shared text for collaborative code editor
     const codeText = doc.getText("code");
 
-    // 5. Access the shared Yjs Map for editor metadata (named "meta")
+    // Access the shared Yjs Map for editor metadata (named "meta")
     const metaMap = doc.getMap("meta");
-
-    // Access the shared Yjs Text for real-time code editing (named "code")
-    const codeText = doc.getText("code");
 
     // PART 1: Access the shared Yjs Array for multi-file workspace (named "files")
     const filesArray = doc.getArray("files");
