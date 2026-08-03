@@ -1,191 +1,164 @@
+// server/controllers/authController.js
+const jwt = require("jsonwebtoken");
+const mongoose = require("mongoose");
+const bcrypt = require("bcryptjs");
 const User = require("../models/User");
-const generateToken = require("../utils/generateToken");
+const localStore = require("../utils/localStore");
+
+const JWT_SECRET = process.env.JWT_SECRET || "codeboard_super_secret_key_2026";
+
+function generateToken(user) {
+  return jwt.sign(
+    {
+      id: user.id || user._id,
+      username: user.username,
+      email: user.email,
+    },
+    JWT_SECRET,
+    { expiresIn: "7d" }
+  );
+}
 
 // @desc    Register a new user
 // @route   POST /api/auth/register
-// @access  Public
-const registerUser = async (req, res) => {
+exports.register = async (req, res) => {
   try {
-    const { name, email, password } = req.body;
+    const { username, email, password } = req.body;
 
-    // Validation
-    if (!name || !email || !password) {
-      return res.status(400).json({
-        success: false,
-        message: "Please provide all required fields",
-      });
+    if (!username || !email || !password) {
+      return res.status(400).json({ message: "Please provide username, email, and password." });
     }
 
-    // Check if user exists
-    const userExists = await User.findOne({ email });
-    if (userExists) {
-      return res.status(400).json({
-        success: false,
-        message: "User already exists with this email",
+    // Check if MongoDB is connected
+    const isMongoConnected = mongoose.connection.readyState === 1;
+
+    if (isMongoConnected) {
+      // Use Mongoose
+      const existingUser = await User.findOne({
+        $or: [
+          { email: email.toLowerCase() },
+          { username: { $regex: new RegExp(`^${username}$`, "i") } },
+        ],
+      });
+
+      if (existingUser) {
+        return res.status(400).json({ message: "Username or email is already taken." });
+      }
+
+      const user = await User.create({
+        username,
+        email: email.toLowerCase(),
+        password,
+      });
+
+      const token = generateToken(user);
+      return res.status(201).json({
+        token,
+        user: {
+          id: user._id,
+          username: user.username,
+          email: user.email,
+        },
+      });
+    } else {
+      // Use Local JSON Store fallback
+      const existingUser = localStore.findUserByEmailOrUsername(username) ||
+                           localStore.findUserByEmailOrUsername(email);
+      if (existingUser) {
+        return res.status(400).json({ message: "Username or email is already taken." });
+      }
+
+      const newUser = await localStore.createUser({ username, email, password });
+      const token = generateToken(newUser);
+      return res.status(201).json({
+        token,
+        user: {
+          id: newUser.id,
+          username: newUser.username,
+          email: newUser.email,
+        },
       });
     }
-
-    // Create user
-    const user = await User.create({
-      name,
-      email,
-      password,
-    });
-
-    // Generate token
-    const token = generateToken(user._id);
-
-    res.status(201).json({
-      success: true,
-      user: {
-        id: user._id,
-        name: user.name,
-        email: user.email,
-        profilePicture: user.profilePicture,
-      },
-      token,
-    });
-  } catch (error) {
-    console.error("Register Error:", error);
-    res.status(500).json({
-      success: false,
-      message: "Server error during registration",
-    });
+  } catch (err) {
+    console.error("Register Error:", err);
+    res.status(500).json({ message: "Server error during registration." });
   }
 };
 
 // @desc    Login user
 // @route   POST /api/auth/login
-// @access  Public
-const loginUser = async (req, res) => {
+exports.login = async (req, res) => {
   try {
-    const { email, password } = req.body;
+    const { identifier, password } = req.body; // identifier can be username or email
 
-    // Validation
-    if (!email || !password) {
-      return res.status(400).json({
-        success: false,
-        message: "Please provide email and password",
-      });
+    if (!identifier || !password) {
+      return res.status(400).json({ message: "Please enter username/email and password." });
     }
 
-    // Find user and include password
-    const user = await User.findOne({ email }).select("+password");
-    if (!user) {
-      return res.status(401).json({
-        success: false,
-        message: "Invalid credentials",
+    const isMongoConnected = mongoose.connection.readyState === 1;
+
+    if (isMongoConnected) {
+      const user = await User.findOne({
+        $or: [
+          { email: identifier.toLowerCase() },
+          { username: { $regex: new RegExp(`^${identifier}$`, "i") } },
+        ],
+      });
+
+      if (!user) {
+        return res.status(401).json({ message: "Invalid username/email or password." });
+      }
+
+      const isMatch = await user.comparePassword(password);
+      if (!isMatch) {
+        return res.status(401).json({ message: "Invalid username/email or password." });
+      }
+
+      const token = generateToken(user);
+      return res.status(200).json({
+        token,
+        user: {
+          id: user._id,
+          username: user.username,
+          email: user.email,
+        },
+      });
+    } else {
+      // Use Local JSON Store
+      const user = localStore.findUserByEmailOrUsername(identifier);
+      if (!user) {
+        return res.status(401).json({ message: "Invalid username/email or password." });
+      }
+
+      const isMatch = await bcrypt.compare(password, user.password);
+      if (!isMatch) {
+        return res.status(401).json({ message: "Invalid username/email or password." });
+      }
+
+      const token = generateToken(user);
+      return res.status(200).json({
+        token,
+        user: {
+          id: user.id,
+          username: user.username,
+          email: user.email,
+        },
       });
     }
-
-    // Check password
-    const isPasswordMatch = await user.matchPassword(password);
-    if (!isPasswordMatch) {
-      return res.status(401).json({
-        success: false,
-        message: "Invalid credentials",
-      });
-    }
-
-    // Generate token
-    const token = generateToken(user._id);
-
-    res.status(200).json({
-      success: true,
-      user: {
-        id: user._id,
-        name: user.name,
-        email: user.email,
-        profilePicture: user.profilePicture,
-      },
-      token,
-    });
-  } catch (error) {
-    console.error("Login Error:", error);
-    res.status(500).json({
-      success: false,
-      message: "Server error during login",
-    });
+  } catch (err) {
+    console.error("Login Error:", err);
+    res.status(500).json({ message: "Server error during login." });
   }
 };
 
-// @desc    Get user profile
-// @route   GET /api/auth/profile
-// @access  Private
-const getProfile = async (req, res) => {
+// @desc    Get current logged in user
+// @route   GET /api/auth/me
+exports.getMe = async (req, res) => {
   try {
-    const user = await User.findById(req.user._id);
-
-    if (!user) {
-      return res.status(404).json({
-        success: false,
-        message: "User not found",
-      });
-    }
-
-    res.status(200).json({
-      success: true,
-      user: {
-        id: user._id,
-        name: user.name,
-        email: user.email,
-        profilePicture: user.profilePicture,
-        createdAt: user.createdAt,
-      },
+    return res.status(200).json({
+      user: req.user,
     });
-  } catch (error) {
-    console.error("Profile Error:", error);
-    res.status(500).json({
-      success: false,
-      message: "Server error fetching profile",
-    });
+  } catch (err) {
+    res.status(500).json({ message: "Failed to fetch user profile." });
   }
-};
-
-// @desc    Update user profile
-// @route   PUT /api/auth/profile
-// @access  Private
-const updateProfile = async (req, res) => {
-  try {
-    const { name, email, profilePicture } = req.body;
-
-    const user = await User.findById(req.user._id);
-
-    if (!user) {
-      return res.status(404).json({
-        success: false,
-        message: "User not found",
-      });
-    }
-
-    // Update fields
-    if (name) user.name = name;
-    if (email) user.email = email;
-    if (profilePicture) user.profilePicture = profilePicture;
-
-    await user.save();
-
-    res.status(200).json({
-      success: true,
-      user: {
-        id: user._id,
-        name: user.name,
-        email: user.email,
-        profilePicture: user.profilePicture,
-      },
-    });
-  } catch (error) {
-    console.error("Update Profile Error:", error);
-    res.status(500).json({
-      success: false,
-      message: "Server error updating profile",
-    });
-  }
-};
-
-module.exports = {
-  registerUser,
-  loginUser,
-  getProfile,
-  updateProfile,
 };
