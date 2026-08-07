@@ -3,6 +3,7 @@ import { Stage, Layer, Line, Circle, Text, Label, Tag } from "react-konva";
 import Toolbar from "./Toolbar";
 import RoomPanel from "./RoomPanel";
 import CodeEditor from "../CodeEditor/CodeEditor";
+import ChatBox from "../Chat/ChatBox";
 import useCanvas from "../../hooks/useCanvas";
 import socketService from "../../services/socketService";
 import useYjs from "../../hooks/useYjs";
@@ -497,17 +498,25 @@ const Whiteboard = ({ initialTab = "whiteboard" }) => {
           />
         </div>
 
-        {/* Shared Teammate & SyncSpace Room Panel */}
-        <RoomPanel
-          connectionStatus={connectionStatus}
-          isJoined={isJoined}
-          currentRoomId={currentRoomId}
-          currentUsername={currentUsername}
-          users={roomUsers}
-          currentSocketId={socketService.socket?.id}
-          onJoin={handleJoin}
-          onLeave={handleLeave}
-        />
+        {/* Sidebar Container: RoomPanel & ChatBox */}
+        <div className="sidebar-container">
+          <RoomPanel
+            connectionStatus={connectionStatus}
+            isJoined={isJoined}
+            currentRoomId={currentRoomId}
+            currentUsername={currentUsername}
+            users={roomUsers}
+            currentSocketId={socketService.socket?.id}
+            onJoin={handleJoin}
+            onLeave={handleLeave}
+          />
+
+          <ChatBox 
+            username={currentUsername} 
+            isDarkMode={isDarkMode} 
+            roomId={currentRoomId} 
+          />
+        </div>
       </div>
     </div>
   );

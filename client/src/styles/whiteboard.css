@@ -263,16 +263,24 @@
   overflow: hidden;
 }
 
-.room-panel {
+.sidebar-container {
+  display: flex;
+  flex-direction: column;
   width: 320px;
+  flex-shrink: 0;
   border-left: 2px solid #e8eaed;
   background: #ffffff;
+  overflow: hidden;
+}
+
+.room-panel {
   display: flex;
   flex-direction: column;
   padding: 20px;
   flex-shrink: 0;
   overflow-y: auto;
   font-family: inherit;
+  border-bottom: 2px solid #e8eaed;
 }
 
 .room-panel-header {
@@ -468,11 +476,14 @@
     flex-direction: column-reverse;
   }
   
-  .room-panel {
+  .sidebar-container {
     width: 100%;
-    height: auto;
     border-left: none;
     border-top: 2px solid #e8eaed;
+  }
+
+  .room-panel {
+    border-bottom: none;
     max-height: 300px;
   }
 }
