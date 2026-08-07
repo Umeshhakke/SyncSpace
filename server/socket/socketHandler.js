@@ -2,6 +2,7 @@
 const { Server } = require("socket.io");
 const roomManager = require("./roomManager");
 const { registerRoomEvents } = require("./roomHandlers");
+const { addMessage, getChatHistory } = require("./chatManager");
 
 /**
  * Initializes Socket.io on the provided HTTP server.
