@@ -2,6 +2,7 @@ import { Whiteboard } from "../whiteboard";
 import { CodeEditor } from "../editor";
 import useResizablePanels from "../../hooks/useResizablePanels";
 import SplitView from "./SplitView";
+import ChatBox from "../chat/ChatBox";
 
 function Workspace() {
     const {
@@ -31,6 +32,7 @@ function Workspace() {
                     defaultWidth: DEFAULT_WIDTH,
                 }}
             />
+            <ChatBox />
         </main>
     );
 }
