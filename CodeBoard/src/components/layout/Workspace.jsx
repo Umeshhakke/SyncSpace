@@ -3,6 +3,7 @@ import { CodeEditor } from "../editor";
 import useResizablePanels from "../../hooks/useResizablePanels";
 import SplitView from "./SplitView";
 import ChatBox from "../chat/ChatBox";
+import VoiceChat from "../chat/VoiceChat"; 
 
 function Workspace() {
     const {
@@ -33,6 +34,7 @@ function Workspace() {
                 }}
             />
             <ChatBox />
+            <VoiceChat />
         </main>
     );
 }
