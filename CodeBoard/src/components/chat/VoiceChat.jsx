@@ -6,12 +6,17 @@ import { Mic, MicOff } from "lucide-react";
 import "./voicechat.css";
 
 const VoiceChat = () => {
-  const { roomId, username } = useWorkspace();
-  const [isMuted, setIsMuted] = useState(true); // true = mic off
+  const { roomId, username, doc } = useWorkspace(); // get shared doc
+  const [isMuted, setIsMuted] = useState(true);
   const [isConnecting, setIsConnecting] = useState(false);
+
   const localStreamRef = useRef(null);
   const peerConnectionsRef = useRef({}); // clientId -> RTCPeerConnection
   const audioElementsRef = useRef({}); // clientId -> HTMLAudioElement
+  const mySocketIdRef = useRef(null); // store our socket id
+
+  // Get the Yjs map for active voice users
+  const voiceMap = doc?.getMap("voiceActiveUsers");
 
   // --- Helper: get user media ---
   const getLocalStream = useCallback(async () => {
@@ -27,19 +32,30 @@ const VoiceChat = () => {
     }
   }, []);
 
+  // --- Create audio element for a remote peer ---
+  const createAudioElement = (clientId) => {
+    if (audioElementsRef.current[clientId]) {
+      return audioElementsRef.current[clientId];
+    }
+    const audio = new Audio();
+    audio.autoplay = true;
+    audioElementsRef.current[clientId] = audio;
+    return audio;
+  };
+
   // --- Create a new peer connection for a remote client ---
   const createPeerConnection = useCallback(
     (remoteClientId, remoteUsername, stream) => {
+      const audio = createAudioElement(remoteClientId);
+
       const pc = new RTCPeerConnection({
         iceServers: [{ urls: "stun:stun.l.google.com:19302" }],
       });
 
-      // Add local tracks to the connection
       stream.getTracks().forEach((track) => {
         pc.addTrack(track, stream);
       });
 
-      // Handle ICE candidates
       pc.onicecandidate = (event) => {
         if (event.candidate) {
           socketService.emit("voice:ice-candidate", {
@@ -50,14 +66,9 @@ const VoiceChat = () => {
         }
       };
 
-      // When remote stream arrives, attach to an audio element
       pc.ontrack = (event) => {
-        if (!audioElementsRef.current[remoteClientId]) {
-          const audio = new Audio();
-          audio.autoplay = true;
-          audio.srcObject = event.streams[0];
-          audioElementsRef.current[remoteClientId] = audio;
-        }
+        audio.srcObject = event.streams[0];
+        audio.play().catch((e) => console.warn("Audio play failed:", e));
       };
 
       return pc;
@@ -65,13 +76,82 @@ const VoiceChat = () => {
     [roomId]
   );
 
-  // --- Handle incoming signaling messages ---
+  // --- Initiate a call to a remote user ---
+  const callUser = useCallback(
+    async (remoteClientId, remoteUsername) => {
+      if (peerConnectionsRef.current[remoteClientId]) return;
+      const stream = localStreamRef.current;
+      if (!stream) return;
+
+      const pc = createPeerConnection(remoteClientId, remoteUsername, stream);
+      peerConnectionsRef.current[remoteClientId] = pc;
+      try {
+        const offer = await pc.createOffer();
+        await pc.setLocalDescription(offer);
+        socketService.emit("voice:offer", {
+          roomId,
+          to: remoteClientId,
+          offer,
+        });
+      } catch (err) {
+        console.error("Error creating offer:", err);
+      }
+    },
+    [roomId, createPeerConnection]
+  );
+
+  // --- Connect to all active users in the Yjs map ---
+  const connectToActiveUsers = useCallback(() => {
+    if (!voiceMap) return;
+    const entries = Array.from(voiceMap.entries());
+    for (const [clientId, data] of entries) {
+      if (clientId === mySocketIdRef.current) continue; // skip self
+      callUser(clientId, data.username);
+    }
+  }, [voiceMap, callUser]);
+
+  // --- Observe Yjs map for changes ---
+  useEffect(() => {
+    if (!voiceMap || !mySocketIdRef.current) return;
+
+    const handleMapChange = () => {
+      const activeIds = new Set(voiceMap.keys());
+      // Remove connections for users who turned off mic
+      for (const [clientId, pc] of Object.entries(peerConnectionsRef.current)) {
+        if (!activeIds.has(clientId)) {
+          pc.close();
+          delete peerConnectionsRef.current[clientId];
+          if (audioElementsRef.current[clientId]) {
+            audioElementsRef.current[clientId].pause();
+            audioElementsRef.current[clientId].srcObject = null;
+            delete audioElementsRef.current[clientId];
+          }
+        }
+      }
+      // Connect to newly active users (if we are unmuted)
+      if (!isMuted && localStreamRef.current) {
+        for (const [clientId, data] of voiceMap.entries()) {
+          if (clientId === mySocketIdRef.current) continue;
+          if (!peerConnectionsRef.current[clientId]) {
+            callUser(clientId, data.username);
+          }
+        }
+      }
+    };
+
+    handleMapChange(); // initial sync
+    voiceMap.observe(handleMapChange);
+    return () => voiceMap.unobserve(handleMapChange);
+  }, [voiceMap, isMuted, callUser]);
+
+  // --- Handle incoming signaling (offer, answer, ICE) ---
   useEffect(() => {
     if (!roomId) return;
 
-    // ---- Incoming offer ----
     const handleOffer = async ({ from, offer }) => {
-      if (!localStreamRef.current) return;
+      if (isMuted || !localStreamRef.current) return;
+      if (peerConnectionsRef.current[from]) return;
+
       const pc = createPeerConnection(from, "", localStreamRef.current);
       peerConnectionsRef.current[from] = pc;
       await pc.setRemoteDescription(new RTCSessionDescription(offer));
@@ -80,7 +160,6 @@ const VoiceChat = () => {
       socketService.emit("voice:answer", { roomId, to: from, answer });
     };
 
-    // ---- Incoming answer ----
     const handleAnswer = async ({ from, answer }) => {
       const pc = peerConnectionsRef.current[from];
       if (pc) {
@@ -88,7 +167,6 @@ const VoiceChat = () => {
       }
     };
 
-    // ---- Incoming ICE candidate ----
     const handleIceCandidate = async ({ from, candidate }) => {
       const pc = peerConnectionsRef.current[from];
       if (pc) {
@@ -100,82 +178,20 @@ const VoiceChat = () => {
       }
     };
 
-    // ---- User turned on mic ----
-    const handleUserMicOn = ({ clientId, username: remoteUsername }) => {
-      // If we are muted, ignore
-      if (isMuted) return;
-      // If we already have a connection, ignore
-      if (peerConnectionsRef.current[clientId]) return;
-
-      // Initiate a call to this user
-      const initCall = async () => {
-        const stream = localStreamRef.current;
-        if (!stream) return;
-        const pc = createPeerConnection(clientId, remoteUsername, stream);
-        peerConnectionsRef.current[clientId] = pc;
-        const offer = await pc.createOffer();
-        await pc.setLocalDescription(offer);
-        socketService.emit("voice:offer", {
-          roomId,
-          to: clientId,
-          offer,
-        });
-      };
-      initCall();
-    };
-
-    // ---- User turned off mic ----
-    const handleUserMicOff = ({ clientId }) => {
-      // Close connection to that user
-      const pc = peerConnectionsRef.current[clientId];
-      if (pc) {
-        pc.close();
-        delete peerConnectionsRef.current[clientId];
-      }
-      // Remove audio element
-      if (audioElementsRef.current[clientId]) {
-        audioElementsRef.current[clientId].pause();
-        audioElementsRef.current[clientId].srcObject = null;
-        delete audioElementsRef.current[clientId];
-      }
-    };
-
-    // ---- User left room ----
-    const handleUserLeft = ({ clientId }) => {
-      // Close connection
-      const pc = peerConnectionsRef.current[clientId];
-      if (pc) {
-        pc.close();
-        delete peerConnectionsRef.current[clientId];
-      }
-      if (audioElementsRef.current[clientId]) {
-        audioElementsRef.current[clientId].pause();
-        audioElementsRef.current[clientId].srcObject = null;
-        delete audioElementsRef.current[clientId];
-      }
-    };
-
-    // Register socket listeners
     socketService.on("voice:offer", handleOffer);
     socketService.on("voice:answer", handleAnswer);
     socketService.on("voice:ice-candidate", handleIceCandidate);
-    socketService.on("voice:user-mic-on", handleUserMicOn);
-    socketService.on("voice:user-mic-off", handleUserMicOff);
-    socketService.on("user-left", handleUserLeft);
 
     return () => {
       socketService.off("voice:offer", handleOffer);
       socketService.off("voice:answer", handleAnswer);
       socketService.off("voice:ice-candidate", handleIceCandidate);
-      socketService.off("voice:user-mic-on", handleUserMicOn);
-      socketService.off("voice:user-mic-off", handleUserMicOff);
-      socketService.off("user-left", handleUserLeft);
     };
   }, [roomId, isMuted, createPeerConnection]);
 
   // --- Toggle mic on/off ---
   const toggleMic = async () => {
-    if (!roomId) return;
+    if (!roomId || !voiceMap) return;
 
     if (isMuted) {
       // Turn on
@@ -185,28 +201,46 @@ const VoiceChat = () => {
         setIsConnecting(false);
         return;
       }
-      // Tell others we are now active
-      socketService.emit("voice:mic-on", { roomId });
+
+      // Store socket id (we need it once)
+      if (!mySocketIdRef.current) {
+        mySocketIdRef.current = socketService.socket?.id;
+        if (!mySocketIdRef.current) {
+          alert("Socket not connected yet.");
+          setIsConnecting(false);
+          return;
+        }
+      }
+
+      // Add ourselves to the Yjs map
+      voiceMap.set(mySocketIdRef.current, { username, timestamp: Date.now() });
+
       setIsMuted(false);
       setIsConnecting(false);
+
+      // Connect to all currently active users (including those who were already on)
+      connectToActiveUsers();
     } else {
       // Turn off
-      // Close all peer connections
+      // Remove ourselves from Yjs map
+      if (mySocketIdRef.current) {
+        voiceMap.delete(mySocketIdRef.current);
+      }
+
+      // Close all connections
       Object.values(peerConnectionsRef.current).forEach((pc) => pc.close());
       peerConnectionsRef.current = {};
-      // Remove all audio elements
       Object.values(audioElementsRef.current).forEach((audio) => {
         audio.pause();
         audio.srcObject = null;
       });
       audioElementsRef.current = {};
-      // Stop local tracks
+
       if (localStreamRef.current) {
         localStreamRef.current.getTracks().forEach((track) => track.stop());
         localStreamRef.current = null;
       }
-      // Notify others
-      socketService.emit("voice:mic-off", { roomId });
+
       setIsMuted(true);
     }
   };
@@ -214,7 +248,9 @@ const VoiceChat = () => {
   // Cleanup on unmount
   useEffect(() => {
     return () => {
-      // Close all connections and stop tracks
+      if (voiceMap && mySocketIdRef.current) {
+        voiceMap.delete(mySocketIdRef.current);
+      }
       Object.values(peerConnectionsRef.current).forEach((pc) => pc.close());
       Object.values(audioElementsRef.current).forEach((audio) => {
         audio.pause();
@@ -224,9 +260,9 @@ const VoiceChat = () => {
         localStreamRef.current.getTracks().forEach((track) => track.stop());
       }
     };
-  }, []);
+  }, [voiceMap]);
 
-  if (!roomId) return null;
+  if (!roomId || !voiceMap) return null;
 
   return (
     <button

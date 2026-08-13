@@ -75,27 +75,13 @@ const initSocket = (httpServer) => {
     registerRoomEvents(io, socket, roomManager);
 
     // ================================================================
-    // ============ NEW: Voice chat signaling events ===================
+    // ============ Voice chat signaling events =======================
     // ================================================================
+    // Active mic state is now managed via Yjs (shared document),
+    // so we no longer broadcast mic‑on/off via socket events.
+    // Only WebRTC signaling is relayed below.
 
-    // 1. User turns on microphone
-    socket.on("voice:mic-on", ({ roomId }) => {
-      const username = socket.data.username || "Anonymous";
-      // Broadcast to everyone else in the room
-      socket.to(roomId).emit("voice:user-mic-on", {
-        clientId: socket.id,
-        username: username,
-      });
-    });
-
-    // 2. User turns off microphone
-    socket.on("voice:mic-off", ({ roomId }) => {
-      socket.to(roomId).emit("voice:user-mic-off", {
-        clientId: socket.id,
-      });
-    });
-
-    // 3. Forward WebRTC offer to a specific peer
+    // 1. Forward WebRTC offer to a specific peer
     socket.on("voice:offer", ({ roomId, to, offer }) => {
       socket.to(to).emit("voice:offer", {
         from: socket.id,
@@ -103,7 +89,7 @@ const initSocket = (httpServer) => {
       });
     });
 
-    // 4. Forward WebRTC answer to a specific peer
+    // 2. Forward WebRTC answer to a specific peer
     socket.on("voice:answer", ({ roomId, to, answer }) => {
       socket.to(to).emit("voice:answer", {
         from: socket.id,
@@ -111,7 +97,7 @@ const initSocket = (httpServer) => {
       });
     });
 
-    // 5. Forward ICE candidate to a specific peer
+    // 3. Forward ICE candidate to a specific peer
     socket.on("voice:ice-candidate", ({ roomId, target, candidate }) => {
       socket.to(target).emit("voice:ice-candidate", {
         from: socket.id,
