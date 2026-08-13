@@ -192,6 +192,17 @@ export function WorkspaceProvider({ roomId, username: initialUsername, children 
         [awareness]
     );
 
+    const leaveRoom = useCallback(() => {
+        try {
+            socketService.leaveRoom();
+            if (provider && typeof provider.disconnect === "function") {
+                provider.disconnect();
+            }
+        } catch (e) {
+            console.error("Error leaving room:", e);
+        }
+    }, [provider]);
+
     const value = useMemo(
         () => ({
             roomId,
@@ -209,6 +220,7 @@ export function WorkspaceProvider({ roomId, username: initialUsername, children 
             awarenessStates,
             addNotification,
             setAwarenessField,
+            leaveRoom,
         }),
         [
             roomId,
@@ -226,6 +238,7 @@ export function WorkspaceProvider({ roomId, username: initialUsername, children 
             awarenessStates,
             addNotification,
             setAwarenessField,
+            leaveRoom,
         ]
     );
 

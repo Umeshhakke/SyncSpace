@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { useNavigate } from "react-router-dom";
 import { Button } from "../ui";
 import {
     Share2,
@@ -182,7 +183,15 @@ function ThemeSwitcher({ darkMode, setDarkMode }) {
 ========================================================= */
 
 function Header() {
-    const { participants, notifications, connectionStatus } = useWorkspace();
+    const { participants, notifications, connectionStatus, leaveRoom } = useWorkspace();
+    const navigate = useNavigate();
+
+    const handleLeaveRoom = () => {
+        if (leaveRoom) {
+            leaveRoom();
+        }
+        navigate("/dashboard");
+    };
 
     const [darkMode, setDarkMode] = useState(null);
     const [shareOpen, setShareOpen] = useState(false);
@@ -290,6 +299,8 @@ function Header() {
                 <Button
                     variant="danger"
                     className="flex items-center gap-1.5 rounded-lg bg-red-600 px-3 py-1.5 text-sm text-white hover:bg-red-700"
+                    onClick={handleLeaveRoom}
+                    title="Leave room and return to Dashboard"
                 >
                     <LogOut size={15} />
                     Leave

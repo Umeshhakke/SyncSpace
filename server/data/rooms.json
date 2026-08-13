@@ -1,0 +1,20 @@
+[
+  {
+    "roomId": "demo-room-101",
+    "name": "Welcome Demo Workspace",
+    "owner": "demo",
+    "ownerEmail": "demo@codeboard.io",
+    "collaborators": [],
+    "description": "Starter collaborative workspace",
+    "createdAt": "2026-08-03T18:04:40.362Z"
+  },
+  {
+    "roomId": "vdt-5z2x-3wy",
+    "name": "workspace",
+    "owner": "umesh",
+    "ownerEmail": "umesh.ph2005@gmail.com",
+    "collaborators": [],
+    "description": "",
+    "createdAt": "2026-08-03T18:08:25.411Z"
+  }
+]

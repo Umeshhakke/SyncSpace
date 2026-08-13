@@ -58,7 +58,10 @@ class SocketService {
   }
 
   leaveRoom() {
-    this.socket?.emit("leave-room");
+    if (this.socket) {
+      this.socket.emit("leave-room");
+      this.disconnect();
+    }
   }
 
   on(event, callback) {
