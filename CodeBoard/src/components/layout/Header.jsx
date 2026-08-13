@@ -15,6 +15,8 @@ import {
 } from "lucide-react";
 import SettingsDrawer from "../settings/SettingsDrawer";
 import { useWorkspace } from "../../context/WorkspaceContext";
+import { getSavedUser } from "../../services/authService";
+import socketService from "../../services/socketService";
 
 /* =========================================================
    Collaborator Avatars
@@ -183,15 +185,8 @@ function ThemeSwitcher({ darkMode, setDarkMode }) {
 ========================================================= */
 
 function Header() {
-    const { participants, notifications, connectionStatus, leaveRoom } = useWorkspace();
     const navigate = useNavigate();
-
-    const handleLeaveRoom = () => {
-        if (leaveRoom) {
-            leaveRoom();
-        }
-        navigate("/dashboard");
-    };
+    const { participants, notifications, connectionStatus } = useWorkspace();
 
     const [darkMode, setDarkMode] = useState(null);
     const [shareOpen, setShareOpen] = useState(false);
@@ -199,6 +194,16 @@ function Header() {
     const shareRef = useRef(null);
 
     const roomUrl = `${window.location.origin}${window.location.pathname}`;
+
+    const handleLeave = () => {
+        socketService.leaveRoom();
+        const user = getSavedUser();
+        if (user) {
+            navigate("/dashboard");
+        } else {
+            navigate("/");
+        }
+    };
 
     useEffect(() => {
         const isDark =
@@ -299,8 +304,7 @@ function Header() {
                 <Button
                     variant="danger"
                     className="flex items-center gap-1.5 rounded-lg bg-red-600 px-3 py-1.5 text-sm text-white hover:bg-red-700"
-                    onClick={handleLeaveRoom}
-                    title="Leave room and return to Dashboard"
+                    onClick={handleLeave}
                 >
                     <LogOut size={15} />
                     Leave
